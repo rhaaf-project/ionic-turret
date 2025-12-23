@@ -1,9 +1,13 @@
 @echo off
+set CI=true
+set IONIC_TELEMETRY=0
+
 echo [1/3] Building Ionic Project...
-call npm run build
+:: Cara ini: Masuk ke PowerShell -> Kirim 'y' -> Jalankan NPM -> Ambil 5 baris terakhir
+powershell -Command "& {echo 'y' | npm run build -- --confirm 2>&1 | Select-Object -Last 5}"
 
 echo [2/3] Building Electron Assets...
-call npm run electron:build
+echo y | call npm run electron:build -- --confirm
 
 echo [3/3] Launching Electron App...
 npx electron .

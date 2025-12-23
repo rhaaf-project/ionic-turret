@@ -13,13 +13,13 @@
         <div class="login-field">
             <label class="login-label">Username</label>
             <input type="text" #usernameInput class="login-input" [(ngModel)]="loginUsername" placeholder="Enter ID"
-                (focus)="showKeyboard(usernameInput)">
+                (focus)="showKeyboard(usernameInput)" (keydown.enter)="processLogin()">
         </div>
 
         <div class="login-field">
             <label class="login-label">Password</label>
             <input type="password" #passwordInput class="login-input" [(ngModel)]="loginPassword"
-                placeholder="Enter Password" (focus)="showKeyboard(passwordInput)">
+                placeholder="Enter Password" (focus)="showKeyboard(passwordInput)" (keydown.enter)="processLogin()">
         </div>
 
         <button class="login-btn" (click)="processLogin()">
@@ -225,7 +225,7 @@
                             }
                             }
                             <!-- Add Button (overlay at bottom-left) -->
-                            <div class="dashboard-icon-item dashboard-fixed-icon" (click)="addItem()">
+                            <div class="dashboard-icon-item dashboard-fixed-icon" (click)="addNewTab()">
                                 <div class="dashboard-icon dashboard-icon-add">
                                     <span class="material-symbols-sharp">add</span>
                                 </div>
@@ -295,7 +295,9 @@
                                 @if (slot) {
                                 <!-- Filled Slot -->
                                 <div class="favourite-item" [attr.data-index]="i" draggable="true"
-                                    (dragstart)="onSlotDragStart($event, i)">
+                                    (dragstart)="onFavItemDragStart($event, i)"
+                                    (dragover)="onFavItemDragOver($event, i)" (dragleave)="onSlotDragLeave($event)"
+                                    (drop)="onFavItemDrop($event, i)">
                                     <div class="fav-item-icon">
                                         <span class="material-symbols-sharp">{{ slot.icon }}</span>
                                     </div>
@@ -809,5 +811,17 @@
             <div class="kb-key" (click)="typeKey('\\')">\</div>
             <div class="kb-key" (click)="typeKey('/');">/</div>
         </div>
+    </div>
+</div>
+
+<!-- DUPLICATE WARNING MODAL -->
+<div class="duplicate-modal-overlay" *ngIf="showDuplicateModal" (click)="showDuplicateModal = false">
+    <div class="duplicate-modal" (click)="$event.stopPropagation()">
+        <div class="duplicate-modal-icon">
+            <span class="material-symbols-sharp">warning</span>
+        </div>
+        <div class="duplicate-modal-title">Notice</div>
+        <div class="duplicate-modal-message">{{ duplicateModalMessage }}</div>
+        <button class="duplicate-modal-btn" (click)="showDuplicateModal = false">OK</button>
     </div>
 </div>

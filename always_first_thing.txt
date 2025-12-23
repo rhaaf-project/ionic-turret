@@ -1,0 +1,2 @@
+- selalu baca always_accept.bat
+- selalu refer liat contoh ke SmartX index.html style.css script.js untuk diaplikasikan ke ionic

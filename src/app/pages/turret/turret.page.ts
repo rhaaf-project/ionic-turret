@@ -118,6 +118,10 @@ export class TurretPage implements OnInit, OnDestroy {
     dialpadContactName = '';
     dialpadConnected = false;
 
+    // Duplicate Modal State
+    showDuplicateModal = false;
+    duplicateModalMessage = '';
+
     // === TABS SYSTEM ===
     tabs: Tab[] = [];
     activeTabId = 'dashboard';
@@ -215,24 +219,31 @@ export class TurretPage implements OnInit, OnDestroy {
             };
             localStorage.setItem('smartucx_saved_favourites', JSON.stringify(savedFavourites));
 
-            // 2. Add fav icon to dashboard layout (if not already there)
-            const activeTab = this.tabs.find(t => t.id === 'dashboard');
-            if (activeTab) {
+            // 2. Add OR update fav icon in dashboard layout
+            const dashboardTab = this.tabs.find(t => t.id === 'dashboard');
+            if (dashboardTab) {
                 const favIconId = `fav_${tabId}`;
-                const emptySlotIndex = activeTab.items.findIndex(item => item === null);
-                if (emptySlotIndex !== -1 && !activeTab.items.some(item => item?.id === favIconId)) {
-                    // Count items in this favourite
-                    const itemCount = tab.items.filter(i => i !== null).length;
-                    activeTab.items[emptySlotIndex] = {
-                        id: favIconId,
-                        label: tab.title,
-                        icon: 'star',
-                        color: 'gold',
-                        bgColor: '#333',
-                        panel: `favourite_${tabId}`,
-                        isDeletable: true
-                    };
-                    console.log(`⭐ Added ${tab.title} icon to dashboard slot ${emptySlotIndex}`);
+                const existingIconIndex = dashboardTab.items.findIndex(item => item?.id === favIconId);
+
+                if (existingIconIndex !== -1) {
+                    // Update existing icon label
+                    dashboardTab.items[existingIconIndex]!.label = tab.title;
+                    console.log(`⭐ Updated ${tab.title} icon in dashboard slot ${existingIconIndex}`);
+                } else {
+                    // Add new icon to empty slot
+                    const emptySlotIndex = dashboardTab.items.findIndex(item => item === null);
+                    if (emptySlotIndex !== -1) {
+                        dashboardTab.items[emptySlotIndex] = {
+                            id: favIconId,
+                            label: tab.title,
+                            icon: 'star',
+                            color: 'gold',
+                            bgColor: '#333',
+                            panel: `favourite_${tabId}`,
+                            isDeletable: true
+                        };
+                        console.log(`⭐ Added ${tab.title} icon to dashboard slot ${emptySlotIndex}`);
+                    }
                 }
             }
 
@@ -501,15 +512,15 @@ export class TurretPage implements OnInit, OnDestroy {
             return;
         }
 
-        // Prevent click from triggering selection
+        // Only allow PTT on active channels - for inactive, let click handle selection
+        if (!channel.isActive) return;
+
+        // Prevent click from triggering selection ONLY for PTT
         event.preventDefault();
         event.stopPropagation();
 
         // Mark that PTT was used (prevents selection toggle)
         this.pttJustFired = true;
-
-        // Only allow PTT on active channels
-        if (!channel.isActive) return;
 
         console.log('🎤 PTT ON:', channel.key);
         channel.isPtt = true;
@@ -535,7 +546,7 @@ export class TurretPage implements OnInit, OnDestroy {
         for (let i = 0; i < 16; i++) {
             this.channels.push({
                 key: `ch-${i + 1}`,
-                name: '',           // Empty = unassigned
+                name: `Ch ${i + 1}`,   // Show Ch 1 - Ch 16
                 extension: '',
                 type: 'sip',
                 position: i + 1,
@@ -1201,6 +1212,32 @@ export class TurretPage implements OnInit, OnDestroy {
                         });
                         return;
                     }
+
+                    // Handle favourite item drop to channel (non-edit mode)
+                    if (data.type === 'favourite_to_channel') {
+                        console.log(`📞 Favourite item drop: ${data.name} to channel ${targetChannel.key}`);
+
+                        // Check for duplicate
+                        const existingChannel = this.channels.find(c => c.name === data.name || c.extension === data.phone);
+                        if (existingChannel && existingChannel.key !== targetChannel.key) {
+                            console.log(`⚠️ Item "${data.name}" already in ${existingChannel.key}`);
+                            this.duplicateModalMessage = `"${data.name}" already listed on Channel`;
+                            this.showDuplicateModal = true;
+                            return;
+                        }
+
+                        targetChannel.name = data.name;
+                        targetChannel.extension = data.phone || '';
+
+                        // Auto-select channel after drop
+                        this.channels.forEach(ch => ch.isSelected = false);
+                        targetChannel.isSelected = true;
+                        this.selectedChannel = targetChannel;
+
+                        this.channels = [...this.channels];
+                        console.log(`✅ Copied ${data.name} to channel ${targetChannel.key}`);
+                        return;
+                    }
                 } catch (e) {
                     console.log('Could not parse drag data');
                 }
@@ -1612,6 +1649,29 @@ export class TurretPage implements OnInit, OnDestroy {
             this.draggedChannel = null;
         }
 
+        // Handle fav_item_reorder drop (from favourite grid in edit mode)
+        try {
+            const jsonData = event.dataTransfer?.getData('application/json');
+            if (jsonData) {
+                const data = JSON.parse(jsonData);
+                if (data.type === 'fav_item_reorder' && this.activeTab) {
+                    const sourceIndex = data.sourceIndex;
+                    if (sourceIndex !== null && sourceIndex !== undefined) {
+                        const item = this.activeTab.items[sourceIndex];
+                        if (item) {
+                            this.activeTab.items[sourceIndex] = null;
+                            this.tabs = [...this.tabs];
+                            console.log('🗑️ Deleted fav item:', item.label, 'from slot', sourceIndex);
+                            this.draggedFavIndex = null;
+                            return;
+                        }
+                    }
+                }
+            }
+        } catch (e) {
+            console.log('Could not parse drop data');
+        }
+
         // Delete dragged dashboard icon (only if deletable - favourites only)
         if (this.draggedSlotIndex !== null && this.activeTab) {
             const icon = this.activeTab.items[this.draggedSlotIndex];
@@ -1651,6 +1711,22 @@ export class TurretPage implements OnInit, OnDestroy {
 
             let newItem: DashboardIcon | null = null;
 
+            // Handle fav item reorder (move to empty slot)
+            if (data.type === 'fav_item_reorder') {
+                const sourceIndex = data.sourceIndex;
+                if (sourceIndex !== null && sourceIndex !== slotIndex) {
+                    const sourceItem = this.activeTab.items[sourceIndex];
+                    if (sourceItem) {
+                        this.activeTab.items[slotIndex] = sourceItem;
+                        this.activeTab.items[sourceIndex] = null;
+                        this.tabs = [...this.tabs];
+                        console.log(`✅ Moved item from ${sourceIndex} to empty slot ${slotIndex}`);
+                        this.draggedFavIndex = null;
+                    }
+                }
+                return;
+            }
+
             // Handle Line/VPW/CAS drops
             if (data.type === 'line_vpw_cas_item') {
                 let icon = 'call';
@@ -1689,12 +1765,27 @@ export class TurretPage implements OnInit, OnDestroy {
             }
 
             if (newItem) {
-                // Check for duplicates
-                const isDuplicate = this.activeTab.items.some(item => item?.id === newItem!.id);
+                // Check for duplicates by NAME OR PHONE (if both defined)
+                // Bug fix: undefined === undefined returns true, so check existence first
+                const isDuplicate = this.activeTab.items.some(item => {
+                    if (!item) return false;
+                    // Check by label
+                    if (item.label === newItem!.label) return true;
+                    // Check by phone (only if BOTH have phone defined)
+                    const itemPhone = (item as any)?.phone;
+                    const newPhone = data.phone;
+                    if (itemPhone && newPhone && itemPhone === newPhone) return true;
+                    return false;
+                });
                 if (isDuplicate) {
                     console.log('⚠️ Item already in favourite:', newItem.label);
+                    this.duplicateModalMessage = `"${newItem.label}" already listed on this Favourite`;
+                    this.showDuplicateModal = true;
                     return;
                 }
+
+                // Store phone in the item for future duplicate checks
+                (newItem as any).phone = data.phone;
 
                 // Add to slot
                 this.activeTab.items[slotIndex] = newItem;
@@ -1704,6 +1795,67 @@ export class TurretPage implements OnInit, OnDestroy {
         } catch (e) {
             console.error('Favourite drop error:', e);
         }
+    }
+
+    // ============================================
+    // FAVOURITE ITEM DRAG (For reordering filled items)
+    // ============================================
+    private draggedFavIndex: number | null = null;
+
+    onFavItemDragStart(event: DragEvent, index: number): void {
+        this.draggedFavIndex = index;
+        const item = this.activeTab?.items[index];
+
+        // Check if in edit mode
+        const isEditMode = this.activeTab?.isEditMode || false;
+
+        // Edit mode = reorder/delete within grid
+        // Non-edit mode = copy to channel
+        const dragType = isEditMode ? 'fav_item_reorder' : 'favourite_to_channel';
+
+        if (event.dataTransfer && item) {
+            event.dataTransfer.setData('application/json', JSON.stringify({
+                type: dragType,
+                sourceIndex: index,
+                itemId: item.id,
+                name: item.label,
+                phone: (item as any).phone || item.id
+            }));
+            event.dataTransfer.effectAllowed = isEditMode ? 'move' : 'copy';
+        }
+
+        if (isEditMode) {
+            (event.target as HTMLElement)?.classList.add('dragging');
+        }
+        console.log(`🔄 Fav item drag start (${dragType}):`, index, item?.label);
+    }
+
+    onFavItemDragOver(event: DragEvent, index: number): void {
+        event.preventDefault();
+        if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+        (event.target as HTMLElement)?.closest('.favourite-item')?.classList.add('drag-over');
+    }
+
+    onFavItemDrop(event: DragEvent, targetIndex: number): void {
+        event.preventDefault();
+        (event.target as HTMLElement)?.closest('.favourite-item')?.classList.remove('drag-over');
+        document.querySelectorAll('.favourite-item.dragging').forEach(el => el.classList.remove('dragging'));
+
+        if (!this.activeTab || this.draggedFavIndex === null || this.draggedFavIndex === targetIndex) {
+            this.draggedFavIndex = null;
+            return;
+        }
+
+        // SWAP items
+        const sourceItem = this.activeTab.items[this.draggedFavIndex];
+        const targetItem = this.activeTab.items[targetIndex];
+
+        this.activeTab.items[targetIndex] = sourceItem;
+        this.activeTab.items[this.draggedFavIndex] = targetItem;
+        this.tabs = [...this.tabs]; // Trigger change detection
+
+        console.log(`✅ Swapped favourite items: ${this.draggedFavIndex} <-> ${targetIndex}`);
+        this.draggedFavIndex = null;
     }
 
     // ============================================

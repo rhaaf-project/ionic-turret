@@ -191,6 +191,13 @@ export class SipService {
         this.registrationStatus.next('unregistered');
     }
 
+    /**
+     * Unregister from PBX (alias for disconnect)
+     */
+    unregister(): void {
+        this.disconnect();
+    }
+
     private handleNewSession(data: any): void {
         const { originator, session, request } = data;
         const direction: 'incoming' | 'outgoing' = originator === 'remote' ? 'incoming' : 'outgoing';

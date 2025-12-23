@@ -38,7 +38,7 @@ export interface AudioRecording {
     providedIn: 'root'
 })
 export class ApiService {
-    private baseUrl = 'http://172.x.x.x:3000/api'; // VM 172
+    private baseUrl = 'http://localhost:3000/api'; // Local dev server
     private currentUser = new BehaviorSubject<User | null>(null);
 
     public currentUser$ = this.currentUser.asObservable();
@@ -57,7 +57,7 @@ export class ApiService {
      * Login user
      */
     login(username: string, password: string): Observable<User> {
-        return this.http.post<User>(`${this.baseUrl}/user/login`, { username, password })
+        return this.http.post<User>(`${this.baseUrl}/login`, { username, password })
             .pipe(
                 tap(user => {
                     this.currentUser.next(user);
@@ -87,6 +87,24 @@ export class ApiService {
                 localStorage.removeItem('turret_user');
             }
         }
+    }
+
+    /**
+     * Get user lines (SIP extensions assigned to user)
+     */
+    getLines(userId: string): Observable<any> {
+        return this.http.get<any>(`${this.baseUrl}/user-data/${userId}`, {
+            headers: this.getHeaders()
+        });
+    }
+
+    /**
+     * Get system configuration (WSS server, domain, etc)
+     */
+    getSystemConfig(): Observable<any> {
+        return this.http.get<any>(`${this.baseUrl}/config`, {
+            headers: this.getHeaders()
+        });
     }
 
     /**
