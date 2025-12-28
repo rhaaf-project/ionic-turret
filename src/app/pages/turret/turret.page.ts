@@ -117,10 +117,26 @@ export class TurretPage implements OnInit, OnDestroy {
     dialpadNumber = '';
     dialpadContactName = '';
     dialpadConnected = false;
+    dialpadCallerName = '';
+    dialpadSession: any = null;
+    dialpadDrawerOpen = false;
+
+    // Active incoming call (waiting for user to drag to channel)
+    activeIncomingSessionKey: string | null = null;
+    activeIncomingNumber: string | null = null;
 
     // Duplicate Modal State
     showDuplicateModal = false;
     duplicateModalMessage = '';
+
+    // Audio Device State
+    audioInputDevices: { deviceId: string; label: string }[] = [];
+    audioOutputDevices: { deviceId: string; label: string }[] = [];
+    selectedInputDeviceId = 'default';
+    selectedOutputDeviceId = 'default';
+
+    // Current SIP Extension
+    currentExtension = '';
 
     // === TABS SYSTEM ===
     tabs: Tab[] = [];
@@ -370,7 +386,7 @@ export class TurretPage implements OnInit, OnDestroy {
 
     constructor(
         private sipService: SipService,
-        private audioService: AudioService
+        public audioService: AudioService
     ) { }
 
     ngOnInit(): void {
@@ -386,6 +402,7 @@ export class TurretPage implements OnInit, OnDestroy {
 
     // [FIX] Subscribe to SIP service events for UI updates
     private activeChannelKeys = new Set<string>();  // Track which channels have active calls
+    private incomingSessionChannelMap = new Map<string, string>();  // Map incoming session key to channel key
 
     private setupSipSubscriptions(): void {
         // Watch for session state changes
@@ -440,8 +457,17 @@ export class TurretPage implements OnInit, OnDestroy {
         // Watch for incoming calls
         this.sipService.incomingCall$.subscribe(call => {
             if (call) {
-                console.log('📲 Incoming call:', call.number);
+                console.log('📲 Incoming call event:', call.number, 'My ext:', this.currentExtension);
+
+                // Don't process calls FROM self
+                if (call.number === this.currentExtension) {
+                    console.log('⚠️ Ignoring call from self');
+                    return;
+                }
+
+                // Just set state - dialpad opens when user clicks Accept
                 this.incomingCall = call;
+                console.log('📞 Incoming call popup should show for:', call.number);
             } else {
                 this.incomingCall = null;
             }
@@ -666,27 +692,332 @@ export class TurretPage implements OnInit, OnDestroy {
         }
     }
 
-    // === GROUP PTT ===
-    startGroupPtt(group: Group): void {
-        group.isActive = true;
-        this.audioService.startPtt();
+    // === CHANNEL DRAG & DROP ===
+    onChannelDragStart(event: DragEvent, channel: Channel): void {
+        this.draggedChannel = channel;
+        if (event.dataTransfer) {
+            event.dataTransfer.setData('channel', JSON.stringify({ key: channel.key, type: 'channel_move' }));
+            event.dataTransfer.setData('channel-key', channel.key);
+            event.dataTransfer.effectAllowed = 'move';
+        }
+        console.log('🔄 Channel drag start:', channel.key);
     }
 
-    stopGroupPtt(group: Group): void {
-        group.isActive = false;
-        this.audioService.stopPtt();
+    onChannelDragOver(event: DragEvent, channel: Channel): void {
+        event.preventDefault();
+        // Accept both 'copy' (from dialpad) and 'move' (from channel)
+        if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy';
+        this.dragOverChannel = channel.key;
+    }
+
+    onChannelDragLeave(event: DragEvent): void {
+        this.dragOverChannel = null;
+    }
+
+    onChannelDrop(event: DragEvent, targetChannel: Channel): void {
+        event.preventDefault();
+        this.dragOverChannel = null;
+
+        if (!event.dataTransfer) {
+            this.draggedChannel = null;
+            return;
+        }
+
+        // 1. Check for dialpad number drop
+        const dialpadNumber = event.dataTransfer.getData('dialpad-number');
+        if (dialpadNumber) {
+            const existingChannel = this.channels.find(c => c.extension === dialpadNumber);
+            if (existingChannel && existingChannel.key !== targetChannel.key) {
+                console.log(`⚠️ Number ${dialpadNumber} already in ${existingChannel.key}`);
+                return;
+            }
+            const contactName = event.dataTransfer.getData('contact-name');
+            targetChannel.extension = dialpadNumber;
+            targetChannel.name = contactName || dialpadNumber;
+
+            // Check if this is from an active incoming call - link session and turn green
+            if (this.activeIncomingSessionKey && this.activeIncomingNumber === dialpadNumber) {
+                // Link the incoming session to this channel
+                this.incomingSessionChannelMap.set(this.activeIncomingSessionKey, targetChannel.key);
+                targetChannel.isActive = true;  // Turn channel GREEN
+                targetChannel.isCalling = false;
+                console.log(`✅ Linked incoming call to ${targetChannel.key} - CONNECTED (green)`);
+
+                // Clear active incoming state
+                this.activeIncomingSessionKey = null;
+                this.activeIncomingNumber = null;
+            }
+
+            this.channels.forEach(ch => ch.isSelected = false);
+            targetChannel.isSelected = true;
+            this.selectedChannel = targetChannel;
+            this.channels = [...this.channels];
+            this.dialpadNumber = '';
+            const dialpadDrawer = document.getElementById('dialpadDrawer');
+            const phonebookDrawer = document.getElementById('phonebookDrawer');
+            if (dialpadDrawer && bootstrap?.Offcanvas) bootstrap.Offcanvas.getInstance(dialpadDrawer)?.hide();
+            if (phonebookDrawer && bootstrap?.Offcanvas) bootstrap.Offcanvas.getInstance(phonebookDrawer)?.hide();
+            this.draggedChannel = null;
+            return;
+        }
+
+        // 2. Check for JSON data (line/vpw/cas, favourite, or channel_move)
+        const jsonData = event.dataTransfer.getData('application/json') || event.dataTransfer.getData('channel');
+        if (jsonData) {
+            try {
+                const data = JSON.parse(jsonData);
+
+                // 2a. Line/VPW/CAS drop
+                if (data.type === 'line_vpw_cas_item') {
+                    const existingChannel = this.channels.find(c => c.extension === data.itemId);
+                    if (existingChannel) {
+                        console.log(`⚠️ Extension ${data.itemId} already in ${existingChannel.key}`);
+                        return;
+                    }
+                    targetChannel.name = data.name;
+                    targetChannel.extension = data.itemId;
+                    this.channels.forEach(ch => ch.isSelected = false);
+                    targetChannel.isSelected = true;
+                    this.selectedChannel = targetChannel;
+                    this.channels = [...this.channels];
+                    ['lineListDrawer', 'vpwListDrawer', 'casListDrawer'].forEach(id => {
+                        const drawer = document.getElementById(id);
+                        if (drawer && bootstrap?.Offcanvas) bootstrap.Offcanvas.getInstance(drawer)?.hide();
+                    });
+                    this.draggedChannel = null;
+                    return;
+                }
+
+                // 2b. Favourite item drop
+                if (data.type === 'favourite_to_channel') {
+                    const existingChannel = this.channels.find(c => c.name === data.name || c.extension === data.phone);
+                    if (existingChannel && existingChannel.key !== targetChannel.key) {
+                        this.duplicateModalMessage = `"${data.name}" already listed on Channel`;
+                        this.showDuplicateModal = true;
+                        return;
+                    }
+                    targetChannel.name = data.name;
+                    targetChannel.extension = data.phone || '';
+                    this.channels.forEach(ch => ch.isSelected = false);
+                    targetChannel.isSelected = true;
+                    this.selectedChannel = targetChannel;
+                    this.channels = [...this.channels];
+                    this.draggedChannel = null;
+                    return;
+                }
+
+                // 2c. Channel-to-Channel MERGE drop
+                if (data.type === 'channel_move' && data.key !== targetChannel.key) {
+                    const sourceChannel = this.channels.find(c => c.key === data.key);
+                    if (sourceChannel) {
+                        console.log(`↔️ Merge/Move ${sourceChannel.key} to ${targetChannel.key}`);
+
+                        // BIDIRECTIONAL MERGE: Result gets groups from BOTH source AND target
+                        const mergedGroups = [...new Set([...targetChannel.groups, ...sourceChannel.groups])];
+
+                        // Transfer data from source to target
+                        targetChannel.extension = sourceChannel.extension;
+                        targetChannel.name = sourceChannel.name;
+                        targetChannel.isActive = sourceChannel.isActive;
+                        targetChannel.groups = mergedGroups;  // Combined groups
+
+                        console.log(`📦 Merged groups: ${mergedGroups.join(', ')}`);
+
+                        // Clear Source
+                        sourceChannel.extension = '';
+                        sourceChannel.name = '';
+                        sourceChannel.isActive = false;
+                        sourceChannel.groups = [];
+
+                        this.channels = [...this.channels];
+                    }
+                    this.draggedChannel = null;
+                    return;
+                }
+            } catch (e) {
+                console.log('Could not parse drag data');
+            }
+        }
+
+        this.draggedChannel = null;
     }
 
     // === INCOMING CALL ===
     acceptCall(): void {
         if (this.incomingCall) {
+            console.log('✅ Accepting call from:', this.incomingCall.number);
+
+            // Answer the SIP session
+            this.sipService.answerCall(this.incomingCall.channelKey);
+
+            // Store the active incoming session key for later linking when user drags
+            this.activeIncomingSessionKey = this.incomingCall.channelKey;
+            this.activeIncomingNumber = this.incomingCall.number;
+
+            // Set dialpad with incoming caller info
+            this.dialpadNumber = this.incomingCall.number;
+            this.dialpadCallerName = this.incomingCall.number;
+            this.dialpadConnected = true;
+
+            console.log('📞 Incoming call answered, drag dialpad to channel to assign');
+
+            // Open dialpad drawer so user can drag the number
+            const dialpadDrawer = document.getElementById('dialpadDrawer');
+            if (dialpadDrawer && bootstrap?.Offcanvas) {
+                new bootstrap.Offcanvas(dialpadDrawer).show();
+            }
+
+            // Clear incoming call popup
             this.incomingCall = null;
         }
     }
 
     rejectCall(): void {
         if (this.incomingCall) {
+            console.log('❌ Rejecting call from:', this.incomingCall.number);
+            // Terminate the SIP session
+            this.sipService.hangupCall(this.incomingCall.channelKey);
             this.incomingCall = null;
+        }
+    }
+
+    // === GROUP TALK ===
+    toggleGroupMembership(channel: Channel, groupId: string): void {
+        if (channel.groups.includes(groupId)) {
+            // Remove from group
+            channel.groups = channel.groups.filter(g => g !== groupId);
+            console.log(`➖ Removed ${channel.name || channel.key} from ${groupId}`);
+        } else {
+            // Add to group
+            channel.groups.push(groupId);
+            console.log(`➕ Added ${channel.name || channel.key} to ${groupId}`);
+        }
+        this.channels = [...this.channels]; // Trigger change detection
+    }
+
+    onGroupTableDrop(event: DragEvent, group: Group): void {
+        event.preventDefault();
+        let channelKey = event.dataTransfer?.getData('channel-key');
+        if (!channelKey) {
+            const channelData = event.dataTransfer?.getData('channel');
+            if (channelData) {
+                try {
+                    const parsed = JSON.parse(channelData);
+                    channelKey = parsed.key;
+                } catch (e) { }
+            }
+        }
+        if (channelKey) {
+            const channel = this.channels.find(c => c.key === channelKey);
+            if (channel) {
+                this.toggleGroupMembership(channel, group.id);
+            }
+        }
+    }
+
+    onGroupBtnDragOver(event: DragEvent, group: Group): void {
+        event.preventDefault();
+        event.stopPropagation();
+        if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy';
+        // Only log once per second to avoid spam
+        if (!this._lastDragOverLog || Date.now() - this._lastDragOverLog > 1000) {
+            console.log('🎯 DragOver on GBox:', group.id);
+            this._lastDragOverLog = Date.now();
+        }
+    }
+    private _lastDragOverLog = 0;
+
+    onGroupBtnDrop(event: DragEvent, group: Group): void {
+        event.preventDefault();
+        console.log('📥 Group drop on:', group.id);
+
+        let channelKey = event.dataTransfer?.getData('channel-key');
+        console.log('  channel-key from dataTransfer:', channelKey);
+
+        // Fallback: try to get from 'channel' data
+        if (!channelKey) {
+            const channelData = event.dataTransfer?.getData('channel');
+            console.log('  channel data from dataTransfer:', channelData);
+            if (channelData) {
+                try {
+                    const parsed = JSON.parse(channelData);
+                    channelKey = parsed.key;
+                    console.log('  parsed channel key:', channelKey);
+                } catch (e) {
+                    console.log('  failed to parse channel data');
+                }
+            }
+        }
+
+        if (channelKey) {
+            const channel = this.channels.find(c => c.key === channelKey);
+            if (channel) {
+                this.toggleGroupMembership(channel, group.id);
+            } else {
+                console.log('  ⚠️ Channel not found:', channelKey);
+            }
+        } else {
+            console.log('  ⚠️ No channel key in drop data');
+        }
+    }
+
+    // === GROUP PTT ===
+    startGroupPtt(group: Group): void {
+        console.log('🎤 Group PTT ON:', group.id);
+        group.isActive = true;
+
+        // Find all channels in this group and activate PTT
+        this.channels.forEach(channel => {
+            if (channel.groups.includes(group.id) && channel.isActive) {
+                // Channel is in group and has active call - unmute mic and show red indicator
+                channel.isPtt = true;
+                this.sipService.unmuteChannel(channel.key);
+                console.log(`  📢 PTT ON for ${channel.key} (${channel.name})`);
+            }
+        });
+        this.channels = [...this.channels]; // Trigger change detection
+
+        // Also check incoming sessions mapped to channels
+        this.incomingSessionChannelMap.forEach((channelKey, sessionKey) => {
+            const channel = this.channels.find(c => c.key === channelKey);
+            if (channel && channel.groups.includes(group.id) && channel.isActive) {
+                this.sipService.unmuteChannel(sessionKey);
+                console.log(`  📢 PTT ON for incoming ${sessionKey} -> ${channelKey}`);
+            }
+        });
+    }
+
+    stopGroupPtt(group: Group): void {
+        console.log('🔇 Group PTT OFF:', group.id);
+        group.isActive = false;
+
+        // Find all channels in this group and deactivate PTT
+        this.channels.forEach(channel => {
+            if (channel.groups.includes(group.id) && channel.isActive) {
+                // Channel is in group and has active call - mute mic and hide red indicator
+                channel.isPtt = false;
+                this.sipService.muteChannel(channel.key);
+                console.log(`  🔇 PTT OFF for ${channel.key} (${channel.name})`);
+            }
+        });
+        this.channels = [...this.channels]; // Trigger change detection
+
+        // Also check incoming sessions
+        this.incomingSessionChannelMap.forEach((channelKey, sessionKey) => {
+            const channel = this.channels.find(c => c.key === channelKey);
+            if (channel && channel.groups.includes(group.id) && channel.isActive) {
+                this.sipService.muteChannel(sessionKey);
+                console.log(`  🔇 PTT OFF for incoming ${sessionKey}`);
+            }
+        });
+    }
+
+    openTab(type: string, data?: any): void {
+        console.log('Open tab:', type, data);
+        if (type === 'grouptalk') {
+            this.activeTabId = 'grouptalk';
+        } else if (type === 'audio') {
+            this.activeTabId = 'audio';
         }
     }
 
@@ -799,9 +1130,6 @@ export class TurretPage implements OnInit, OnDestroy {
         this.submenuOpen = this.submenuOpen === menu ? null : menu;
     }
 
-    openTab(tab: string): void {
-        console.log('Open tab:', tab);
-    }
 
     signOut(): void {
         console.log('Sign out');
@@ -1076,6 +1404,98 @@ export class TurretPage implements OnInit, OnDestroy {
         }
     }
 
+    // Touch drag for dialpad
+    dialpadDragClone: HTMLElement | null = null;
+
+    handleDialTouchStart(event: TouchEvent): void {
+        if (!this.dialpadNumber) return;
+        event.preventDefault();
+
+        const touch = event.touches[0];
+        const clone = document.createElement('div');
+        clone.className = 'drag-clone';
+        clone.innerHTML = `📞 ${this.dialpadNumber}`;
+        clone.style.cssText = `
+            position: fixed;
+            left: ${touch.clientX - 30}px;
+            top: ${touch.clientY - 20}px;
+            background: #00ff66;
+            padding: 8px 12px;
+            border-radius: 4px;
+            color: black;
+            z-index: 9999;
+            pointer-events: none;
+            font-size: 14px;
+            font-weight: bold;
+        `;
+        document.body.appendChild(clone);
+        this.dialpadDragClone = clone;
+        console.log('📱 Dialpad touch drag start:', this.dialpadNumber);
+    }
+
+    handleDialTouchMove(event: TouchEvent): void {
+        if (!this.dialpadDragClone) return;
+        event.preventDefault();
+        const touch = event.touches[0];
+        this.dialpadDragClone.style.left = `${touch.clientX - 30}px`;
+        this.dialpadDragClone.style.top = `${touch.clientY - 20}px`;
+    }
+
+    handleDialTouchEnd(event: TouchEvent): void {
+        if (!this.dialpadDragClone) return;
+
+        // Remove clone
+        this.dialpadDragClone.remove();
+        this.dialpadDragClone = null;
+
+        // Find what we dropped on
+        const touch = event.changedTouches[0];
+        const elements = document.elementsFromPoint(touch.clientX, touch.clientY);
+        const channelCell = elements.find(el => el.classList.contains('call-cell'));
+
+        if (channelCell) {
+            const channelKey = channelCell.getAttribute('data-channel-key');
+            if (channelKey) {
+                const targetChannel = this.channels.find(c => c.key === channelKey);
+                if (targetChannel) {
+                    console.log('📱 Dialpad touch drop on:', channelKey);
+
+                    // Same logic as onChannelDrop for dialpad
+                    const existingChannel = this.channels.find(c => c.extension === this.dialpadNumber && c.key !== channelKey);
+                    if (existingChannel) {
+                        console.log(`⚠️ Number ${this.dialpadNumber} already in ${existingChannel.key}`);
+                        return;
+                    }
+
+                    targetChannel.extension = this.dialpadNumber;
+                    targetChannel.name = this.dialpadCallerName || this.dialpadNumber;
+
+                    // Check if this is from an active incoming call
+                    if (this.activeIncomingSessionKey && this.activeIncomingNumber === this.dialpadNumber) {
+                        this.incomingSessionChannelMap.set(this.activeIncomingSessionKey, targetChannel.key);
+                        targetChannel.isActive = true;
+                        targetChannel.isCalling = false;
+                        console.log(`✅ Linked incoming call to ${targetChannel.key} - CONNECTED (green)`);
+                        this.activeIncomingSessionKey = null;
+                        this.activeIncomingNumber = null;
+                    }
+
+                    this.channels.forEach(ch => ch.isSelected = false);
+                    targetChannel.isSelected = true;
+                    this.selectedChannel = targetChannel;
+                    this.channels = [...this.channels];
+                    this.dialpadNumber = '';
+
+                    // Close dialpad
+                    const dialpadDrawer = document.getElementById('dialpadDrawer');
+                    if (dialpadDrawer && bootstrap?.Offcanvas) {
+                        bootstrap.Offcanvas.getInstance(dialpadDrawer)?.hide();
+                    }
+                }
+            }
+        }
+    }
+
     // [NEW] Open dialpad with pre-filled number (double-click on Line item)
     openDialpadWithNumber(number: string, name: string): void {
         console.log('📞 Opening dialpad with:', number, name);
@@ -1108,159 +1528,6 @@ export class TurretPage implements OnInit, OnDestroy {
     }
 
     // ============================================
-    // DRAG & DROP: CHANNELS
-    // ============================================
-    onChannelDragStart(event: DragEvent, channel: Channel): void {
-        this.draggedChannel = channel;
-        event.dataTransfer?.setData('channel', JSON.stringify({ key: channel.key, type: 'channel_move' }));
-        if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move';
-        console.log('Drag start:', channel.key);
-    }
-
-    onChannelDragOver(event: DragEvent, channel: Channel): void {
-        event.preventDefault();
-        if (this.draggedChannel && this.draggedChannel.key !== channel.key) {
-            this.dragOverChannel = channel.key;
-        }
-    }
-
-    onChannelDragLeave(event: DragEvent): void {
-        this.dragOverChannel = null;
-    }
-
-    onChannelDrop(event: DragEvent, targetChannel: Channel): void {
-        event.preventDefault();
-        this.dragOverChannel = null;
-
-        // Check if this is a dialpad number drop
-        if (event.dataTransfer) {
-            const dialpadNumber = event.dataTransfer.getData('dialpad-number');
-            if (dialpadNumber) {
-                // Check if this number is already assigned to another channel
-                const existingChannel = this.channels.find(c => c.extension === dialpadNumber);
-                if (existingChannel) {
-                    console.log(`⚠️ Number ${dialpadNumber} already in ${existingChannel.key} - skipping`);
-                    return; // Don't allow duplicate
-                }
-
-                // Get contact name if available (from phonebook drag)
-                const contactName = event.dataTransfer.getData('contact-name');
-
-                // Assign to this channel
-                console.log(`📞 Dropping ${contactName || dialpadNumber} to channel ${targetChannel.key}`);
-                targetChannel.extension = dialpadNumber;
-                targetChannel.name = contactName || dialpadNumber;  // Use contact name if available
-                // Don't set isActive - need to call first
-
-                // Auto-select channel after drop
-                this.channels.forEach(ch => ch.isSelected = false);
-                targetChannel.isSelected = true;
-                this.selectedChannel = targetChannel;
-
-                // Force update
-                this.channels = [...this.channels];
-
-                // Clear dialpad display
-                this.dialpadNumber = '';
-
-                // Close drawers
-                const dialpadDrawer = document.getElementById('dialpadDrawer');
-                const phonebookDrawer = document.getElementById('phonebookDrawer');
-                if (dialpadDrawer && bootstrap?.Offcanvas) {
-                    bootstrap.Offcanvas.getInstance(dialpadDrawer)?.hide();
-                }
-                if (phonebookDrawer && bootstrap?.Offcanvas) {
-                    bootstrap.Offcanvas.getInstance(phonebookDrawer)?.hide();
-                }
-                return;
-            }
-
-            // [FIX] Handle Line/VPW/CAS mouse drag drop
-            const jsonData = event.dataTransfer.getData('application/json');
-            if (jsonData) {
-                try {
-                    const data = JSON.parse(jsonData);
-                    if (data.type === 'line_vpw_cas_item') {
-                        console.log(`📞 Mouse drop ${data.name} (${data.itemType}) to channel ${targetChannel.key}`);
-
-                        // Check for duplicate
-                        const existingChannel = this.channels.find(c => c.extension === data.itemId);
-                        if (existingChannel) {
-                            console.log(`⚠️ Extension ${data.itemId} already in ${existingChannel.key}`);
-                            return;
-                        }
-
-                        targetChannel.name = data.name;
-                        targetChannel.extension = data.itemId;
-                        // Don't set isActive - need to call first
-
-                        // Auto-select channel after drop
-                        this.channels.forEach(ch => ch.isSelected = false);
-                        targetChannel.isSelected = true;
-                        this.selectedChannel = targetChannel;
-
-                        this.channels = [...this.channels];
-
-                        // Close drawer
-                        const lineDrawer = document.getElementById('lineListDrawer');
-                        const vpwDrawer = document.getElementById('vpwListDrawer');
-                        const casDrawer = document.getElementById('casListDrawer');
-                        [lineDrawer, vpwDrawer, casDrawer].forEach(drawer => {
-                            if (drawer && bootstrap?.Offcanvas) {
-                                bootstrap.Offcanvas.getInstance(drawer)?.hide();
-                            }
-                        });
-                        return;
-                    }
-
-                    // Handle favourite item drop to channel (non-edit mode)
-                    if (data.type === 'favourite_to_channel') {
-                        console.log(`📞 Favourite item drop: ${data.name} to channel ${targetChannel.key}`);
-
-                        // Check for duplicate
-                        const existingChannel = this.channels.find(c => c.name === data.name || c.extension === data.phone);
-                        if (existingChannel && existingChannel.key !== targetChannel.key) {
-                            console.log(`⚠️ Item "${data.name}" already in ${existingChannel.key}`);
-                            this.duplicateModalMessage = `"${data.name}" already listed on Channel`;
-                            this.showDuplicateModal = true;
-                            return;
-                        }
-
-                        targetChannel.name = data.name;
-                        targetChannel.extension = data.phone || '';
-
-                        // Auto-select channel after drop
-                        this.channels.forEach(ch => ch.isSelected = false);
-                        targetChannel.isSelected = true;
-                        this.selectedChannel = targetChannel;
-
-                        this.channels = [...this.channels];
-                        console.log(`✅ Copied ${data.name} to channel ${targetChannel.key}`);
-                        return;
-                    }
-                } catch (e) {
-                    console.log('Could not parse drag data');
-                }
-            }
-        }
-
-        if (this.draggedChannel && this.draggedChannel.key !== targetChannel.key) {
-            // Swap channels
-            const sourceIndex = this.channels.findIndex(c => c.key === this.draggedChannel!.key);
-            const targetIndex = this.channels.findIndex(c => c.key === targetChannel.key);
-
-            if (sourceIndex !== -1 && targetIndex !== -1) {
-                // Swap data
-                const temp = { ...this.channels[sourceIndex] };
-                this.channels[sourceIndex] = { ...this.channels[targetIndex], key: this.channels[sourceIndex].key, position: sourceIndex + 1 };
-                this.channels[targetIndex] = { ...temp, key: this.channels[targetIndex].key, position: targetIndex + 1 };
-                console.log(`Swapped ${this.draggedChannel.key} with ${targetChannel.key}`);
-            }
-        }
-        this.draggedChannel = null;
-    }
-
-    // ============================================
     // DRAG HANDLE: Channel Drag to Hangup/Delete
     // ============================================
     dragHandleChannel: Channel | null = null;
@@ -1273,6 +1540,73 @@ export class TurretPage implements OnInit, OnDestroy {
             event.dataTransfer.effectAllowed = 'move';
         }
         console.log('🔧 Drag handle start:', channel.key);
+
+        // Track mouse position during drag for later detection
+        document.addEventListener('dragover', this._trackDragPosition, true);
+    }
+
+    private _lastDragX = 0;
+    private _lastDragY = 0;
+    private _trackDragPosition = (e: DragEvent) => {
+        this._lastDragX = e.clientX;
+        this._lastDragY = e.clientY;
+    };
+
+    onDragHandleEnd(event: DragEvent, channel: Channel): void {
+        // Remove position tracker
+        document.removeEventListener('dragover', this._trackDragPosition, true);
+
+        // Use last known position to detect drop target
+        const elements = document.elementsFromPoint(this._lastDragX, this._lastDragY);
+        const groupBtn = elements.find(el => el.classList.contains('group-btn'));
+        const channelCell = elements.find(el => el.classList.contains('call-cell'));
+
+        if (groupBtn && this.dragHandleChannel) {
+            // Drop on GBox - toggle group membership
+            const titleEl = groupBtn.querySelector('.group-title');
+            const groupId = titleEl?.textContent?.trim() || '';
+            if (groupId && ['G1', 'G2', 'G3'].includes(groupId)) {
+                console.log('📥 Mouse drag end on GBox:', groupId);
+                this.toggleGroupMembership(this.dragHandleChannel, groupId);
+            }
+        } else if (channelCell && this.dragHandleChannel) {
+            // Drop on another channel - merge/move
+            const targetKey = channelCell.getAttribute('data-channel-key');
+            if (targetKey && targetKey !== this.dragHandleChannel.key) {
+                const targetChannel = this.channels.find(c => c.key === targetKey);
+                if (targetChannel) {
+                    console.log(`↔️ Mouse Merge/Move ${this.dragHandleChannel.key} to ${targetKey}`);
+
+                    // BIDIRECTIONAL MERGE: Result gets groups from BOTH source AND target
+                    const mergedGroups = [...new Set([...targetChannel.groups, ...this.dragHandleChannel.groups])];
+
+                    // Transfer data from source to target
+                    targetChannel.extension = this.dragHandleChannel.extension;
+                    targetChannel.name = this.dragHandleChannel.name;
+                    targetChannel.isActive = this.dragHandleChannel.isActive;
+                    targetChannel.groups = mergedGroups;
+
+                    console.log(`📦 Merged groups: ${mergedGroups.join(', ') || 'none'}`);
+
+                    // Clear Source channel completely
+                    this.dragHandleChannel.extension = '';
+                    this.dragHandleChannel.name = '';
+                    this.dragHandleChannel.isActive = false;
+                    this.dragHandleChannel.isSelected = false;
+                    this.dragHandleChannel.groups = [];
+
+                    // Select target channel
+                    this.channels.forEach(ch => ch.isSelected = false);
+                    targetChannel.isSelected = true;
+                    this.selectedChannel = targetChannel;
+
+                    this.channels = [...this.channels];
+                }
+            }
+        }
+
+        this.dragHandleChannel = null;
+        console.log('🔧 Drag handle end:', channel.key);
     }
 
     onDragHandleTouchStart(event: TouchEvent, channel: Channel): void {
@@ -1348,6 +1682,7 @@ export class TurretPage implements OnInit, OnDestroy {
         const elements = document.elementsFromPoint(touch.clientX, touch.clientY);
         const hangupBtn = elements.find(el => el.classList.contains('hangup-btn'));
         const trashBtn = elements.find(el => el.classList.contains('trash-btn'));
+        const groupBtn = elements.find(el => el.classList.contains('group-btn'));
 
         if (hangupBtn) {
             console.log('📴 Drag hangup:', this.dragHandleChannel.key);
@@ -1355,6 +1690,17 @@ export class TurretPage implements OnInit, OnDestroy {
         } else if (trashBtn) {
             console.log('🗑️ Drag delete:', this.dragHandleChannel.key);
             this.deleteChannel(this.dragHandleChannel);
+        } else if (groupBtn) {
+            // Find the group ID from the group button's title element
+            const titleEl = groupBtn.querySelector('.group-title');
+            const groupId = titleEl?.textContent?.trim() || '';
+            if (groupId && ['G1', 'G2', 'G3'].includes(groupId)) {
+                const group = this.groups.find(g => g.id === groupId);
+                if (group) {
+                    console.log('📥 Touch drop on GBox:', groupId);
+                    this.toggleGroupMembership(this.dragHandleChannel, groupId);
+                }
+            }
         }
 
         // Reset
@@ -2006,13 +2352,26 @@ export class TurretPage implements OnInit, OnDestroy {
         this.loginStatusColor = '#ffcc00';
         this.hideKeyboard();
 
-        // [FIX] Register SIP extension on login
-        // Using hardcoded config for now - should come from API
+        // Map username to SIP extension
+        const extensionMap: { [key: string]: string } = {
+            'admin': '6000',
+            'demo': '6000',
+            'demo1': '6001',
+            'demo2': '6002',
+            'demo3': '6003',
+            'demo4': '6004',
+            'test': '6005'
+        };
+        const extension = extensionMap[this.loginUsername.toLowerCase()] || '6000';
+        this.currentExtension = extension;
+        console.log(`📞 Login as ${this.loginUsername} → Extension ${extension}`);
+
+        // Register SIP extension
         this.sipService.registerExtension({
             server: '103.154.80.172',
             port: 8089,
-            extension: '6001',  // Default extension
-            password: 'Maja1234'  // Should be from API
+            extension: extension,
+            password: 'Maja1234'
         });
 
         // Wait for registration then enter dashboard

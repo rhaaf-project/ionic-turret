@@ -464,32 +464,6 @@ ion-content {
     transition: all 0.3s;
     font-size: 1rem;
 
-    &:hover {
-        filter: brightness(1.2);
-    }
-}
-
-.login-status {
-    margin-top: 20px;
-    text-align: center;
-    font-size: 12px;
-}
-
-.login-version {
-    position: absolute;
-    bottom: 15px;
-    right: 20px;
-    font-size: 11px;
-    color: #555;
-}
-
-// ============================================
-// PTT OVERLAY
-// ============================================
-#ptt-overlay {
-    position: fixed;
-    top: 50%;
-    left: 50%;
     transform: translate(-50%, -50%) scale(0.8);
     background-color: rgba(20, 0, 0, 0.9);
     border: 2px solid #ff4d4d;
@@ -661,5 +635,242 @@ ion-content {
     50% {
         opacity: 0.7;
         transform: scale(1.05);
+    }
+}
+
+// ============================================
+// LADDER BAR - SmartX Style (Striped Bars)
+// ============================================
+.ladder-bar {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 25px;
+    overflow: hidden;
+    background-color: rgba(0, 0, 0, 0.3);
+    pointer-events: none;
+    z-index: 1;
+
+    &.left {
+        left: -18px;
+        transform: skewX(165deg);
+        border-right: 1px solid #222;
+    }
+
+    &.right {
+        right: -18px;
+        transform: skewX(-20deg);
+        border-left: 1px solid #222;
+        z-index: 9999;
+    }
+}
+
+.ladder-fill {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 0%; // Default hidden
+    transition: height 0.1s ease-out;
+    background-size: 100% 8px;
+}
+
+// Left bar (green) - striped pattern
+.ladder-bar.left .ladder-fill {
+    background-image: repeating-linear-gradient(to top, #00ff66 0px, #00ff66 4px, transparent 4px, transparent 8px);
+    box-shadow: 0 0 15px rgba(0, 255, 102, 0.4);
+}
+
+// Right bar (red) - striped pattern
+.ladder-bar.right .ladder-fill {
+    background-image: repeating-linear-gradient(to top, #ff0000 0px, #ff0000 4px, transparent 4px, transparent 8px);
+    box-shadow: 0 0 15px rgba(255, 0, 0, 0.4);
+}
+
+// Speaking green (left bar active) - when OTHER side is doing PTT
+.call-cell.speaking-green .ladder-bar.left .ladder-fill {
+    animation: ladder-bounce 0.6s infinite ease-in-out;
+}
+
+// Speaking red (right bar active) - when THIS side is doing PTT
+.call-cell.speaking-red .ladder-bar.right .ladder-fill {
+    animation: ladder-bounce 0.6s infinite ease-in-out;
+}
+
+@keyframes ladder-bounce {
+    0% {
+        height: 20%;
+    }
+
+    25% {
+        height: 70%;
+    }
+
+    50% {
+        height: 40%;
+    }
+
+    75% {
+        height: 100%;
+    }
+
+    100% {
+        height: 30%;
+    }
+}
+
+// ============================================
+// GROUP TALK STYLES
+// ============================================
+
+// Channel Cell Group Bars
+.group-bars-container {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    display: flex;
+    z-index: 10;
+    background: rgba(0, 0, 0, 0.5); // Slight backing
+}
+
+.group-bar {
+    flex: 1;
+    height: 100%;
+    opacity: 0.2;
+    background: #555;
+    margin: 0 1px;
+}
+
+.bar-g1 {
+    background-color: #3498db;
+}
+
+.bar-g2 {
+    background-color: #e67e22;
+}
+
+.bar-g3 {
+    background-color: #9b59b6;
+}
+
+.bar-g1.active,
+.bar-g2.active,
+.bar-g3.active {
+    opacity: 1;
+    box-shadow: 0 0 5px currentColor;
+}
+
+// Group Buttons (Left Column)
+.group-talk-area {
+    display: flex;
+    justify-content: space-between;
+    gap: 5px;
+    padding: 10px;
+    background: #0a0a0a;
+    border-top: 1px solid #222;
+}
+
+.group-btn {
+    flex: 1;
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 6px;
+    padding: 8px 5px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.1s;
+    user-select: none;
+    border-bottom: 4px solid transparent;
+
+    &:active {
+        transform: scale(0.95);
+    }
+
+    &:hover {
+        background: #222;
+    }
+
+    &.active-talk {
+        background: #1e3a25;
+        border-color: #00ff66;
+        border-bottom-color: #00ff66 !important;
+    }
+
+    .group-title {
+        font-weight: bold;
+        color: #fff;
+        font-size: 1.1rem;
+    }
+
+    .group-subtitle {
+        font-size: 0.6rem;
+        color: #888;
+        margin-top: 2px;
+    }
+}
+
+// Group Border Colors (Default state)
+.group-btn:nth-child(1) {
+    border-bottom-color: #3498db;
+}
+
+.group-btn:nth-child(2) {
+    border-bottom-color: #e67e22;
+}
+
+.group-btn:nth-child(3) {
+    border-bottom-color: #9b59b6;
+}
+
+// Config Page (Middle Column)
+.grouptalk-container {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.config-table {
+    background: #000;
+    border: 1px solid #333;
+    border-radius: 8px;
+    overflow: hidden;
+
+    &.slot-G1 {
+        border-top: 3px solid #3498db;
+    }
+
+    &.slot-G2 {
+        border-top: 3px solid #e67e22;
+    }
+
+    &.slot-G3 {
+        border-top: 3px solid #9b59b6;
+    }
+}
+
+.config-cell {
+    position: relative;
+    border-radius: 4px;
+    transition: all 0.2s;
+
+    &:hover {
+        filter: brightness(1.2);
+    }
+
+    &.active {
+        border-width: 2px !important;
+        box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+    }
+
+    .trash-icon {
+        cursor: pointer;
+        transition: transform 0.2s;
+
+        &:hover {
+            transform: scale(1.2);
+            font-weight: bold;
+        }
     }
 }

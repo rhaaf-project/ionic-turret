@@ -2,6 +2,7 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 import * as JsSIP from 'jssip';
+import { AudioService } from './audio.service';
 
 export interface SipConfig {
     server: string;
@@ -26,13 +27,18 @@ export class SipService {
     private registrationStatus = new BehaviorSubject<'unregistered' | 'registering' | 'registered' | 'failed'>('unregistered');
     private lineBusyStatus = new BehaviorSubject<Map<string, boolean>>(new Map());
     private incomingCall = new BehaviorSubject<{ number: string, channelKey: string } | null>(null);
+    private sessionEnded = new BehaviorSubject<string | null>(null);
+
+    // Store remote audio elements to prevent garbage collection
+    private remoteAudioElements = new Map<string, HTMLAudioElement>();
 
     public activeSessions$ = this.activeSessions.asObservable();
     public registrationStatus$ = this.registrationStatus.asObservable();
     public lineBusyStatus$ = this.lineBusyStatus.asObservable();
     public incomingCall$ = this.incomingCall.asObservable();
+    public sessionEnded$ = this.sessionEnded.asObservable();
 
-    constructor() {
+    constructor(private audioService: AudioService) {
         // Enable JsSIP debug in development
         JsSIP.debug.enable('JsSIP:*');
     }
@@ -41,7 +47,7 @@ export class SipService {
      * Register extension to PBX via WebSocket
      */
     registerExtension(config: SipConfig): void {
-        const wsUri = `wss://${config.server}:${config.port}/ws`;
+        const wsUri = `ws://${config.server}:${config.port}/ws`;
         const sipUri = `sip:${config.extension}@${config.server}`;
 
         const socket = new JsSIP.WebSocketInterface(wsUri);
@@ -80,7 +86,7 @@ export class SipService {
     }
 
     /**
-     * Make outgoing call
+     * Make outgoing call - SmartX Pattern
      */
     makeCall(targetUri: string, channelKey: string): void {
         if (!this.ua) {
@@ -90,46 +96,120 @@ export class SipService {
 
         console.log(`[SIP] Making call to ${targetUri} for channel ${channelKey}`);
 
-        const options = {
-            mediaConstraints: { audio: true, video: false },
-            rtcOfferConstraints: { offerToReceiveAudio: true, offerToReceiveVideo: false },
-            pcConfig: {
-                iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+        // Get selected microphone
+        const inputDeviceId = this.audioService.getSelectedInputDeviceId();
+        const audioConstraints = inputDeviceId && inputDeviceId !== 'default'
+            ? { deviceId: { exact: inputDeviceId } }
+            : true;
+
+        // Get microphone stream FIRST (like SmartX)
+        navigator.mediaDevices.getUserMedia({ audio: audioConstraints }).then((stream) => {
+            // Mute mic by default (PTT mode) - same as incoming calls
+            if (stream.getAudioTracks().length > 0) {
+                stream.getAudioTracks()[0].enabled = false;
+                console.log('[SIP] 🔇 Outgoing call: Mic auto-muted (PTT mode)');
             }
-        };
 
-        const session = this.ua.call(targetUri, options);
+            // SmartX pattern: EMPTY iceServers for instant call (no 40s delay!)
+            const session = this.ua!.call(targetUri, {
+                mediaStream: stream,
+                pcConfig: { iceServers: [] }
+            });
 
-        // [FIX] Setup audio playback like SmartX
-        session.on('peerconnection', (e: any) => {
-            console.log('[SIP] Peerconnection established');
-            e.peerconnection.ontrack = (event: RTCTrackEvent) => {
-                console.log('[SIP] Remote track received');
-                const remoteAudio = new Audio();
-                remoteAudio.srcObject = event.streams[0];
-                remoteAudio.play().catch(err => {
-                    console.warn('[SIP] Audio autoplay blocked:', err);
-                });
-            };
+            // Use session.connection.addEventListener like SmartX
+            session.connection.addEventListener('track', (e: RTCTrackEvent) => {
+                console.log('[SIP] Remote track received for:', channelKey);
+                const remoteAudio = document.getElementById('remoteAudio') as HTMLAudioElement;
+                if (remoteAudio) {
+                    remoteAudio.srcObject = e.streams[0];
+                    remoteAudio.play().catch(err => console.error('[SIP] Audio play error:', err));
+
+                    // Apply selected speaker
+                    const outputDeviceId = this.audioService.getSelectedOutputDeviceId();
+                    if (outputDeviceId && outputDeviceId !== 'default' && (remoteAudio as any).setSinkId) {
+                        (remoteAudio as any).setSinkId(outputDeviceId).catch((err: any) => console.warn('[SIP] setSinkId error:', err));
+                    }
+                }
+            });
+
+            session.on('confirmed', () => {
+                console.log(`[SIP] ✅ Call connected: ${channelKey}`);
+            });
+
+            session.on('progress', () => {
+                console.log(`[SIP] Progress (ringing): ${channelKey}`);
+            });
+
+            session.on('failed', (e: any) => {
+                console.error(`[SIP] Call failed for ${channelKey}:`, e?.cause || 'Unknown reason');
+            });
+
+            session.on('ended', () => {
+                console.log(`[SIP] Call ended for ${channelKey}`);
+            });
+
+            this.addSession(channelKey, session, 'outgoing');
+
+        }).catch((err) => {
+            console.error('[SIP] Mic access error:', err);
         });
-
-        session.on('progress', () => {
-            console.log(`[SIP] Progress (ringing): ${channelKey}`);
-        });
-
-        this.addSession(channelKey, session, 'outgoing');
     }
 
     /**
-     * Answer incoming call
+     * Answer incoming call - SmartX Pattern
      */
     answerCall(channelKey: string): void {
         const sessions = this.activeSessions.getValue();
         const sipSession = sessions.get(channelKey);
 
         if (sipSession && sipSession.direction === 'incoming') {
-            sipSession.session.answer({
-                mediaConstraints: { audio: true, video: false }
+            const session = sipSession.session;
+
+            // Get selected microphone
+            const inputDeviceId = this.audioService.getSelectedInputDeviceId();
+            const audioConstraints = inputDeviceId && inputDeviceId !== 'default'
+                ? { deviceId: { exact: inputDeviceId } }
+                : true;
+
+            // SmartX pattern: getUserMedia FIRST, then answer
+            navigator.mediaDevices.getUserMedia({ audio: audioConstraints }).then((stream) => {
+                // Mute mic by default (PTT mode) - like SmartX
+                if (stream.getAudioTracks().length > 0) {
+                    stream.getAudioTracks()[0].enabled = false;
+                    console.log('[SIP] 🔇 Mic auto-muted (PTT mode)');
+                }
+
+                // Answer with mediaStream and empty iceServers (like SmartX)
+                session.answer({
+                    mediaStream: stream,
+                    pcConfig: { iceServers: [] }
+                });
+
+                // Setup audio output using session.connection (like SmartX)
+                session.connection.addEventListener('track', (e: RTCTrackEvent) => {
+                    console.log('[SIP] Remote track received for incoming:', channelKey);
+                    const remoteAudio = document.getElementById('remoteAudio') as HTMLAudioElement;
+                    if (remoteAudio) {
+                        remoteAudio.srcObject = e.streams[0];
+                        remoteAudio.play().catch(err => console.error('[SIP] Audio play error:', err));
+
+                        // SmartX: Do NOT mute remote audio - user can always HEAR
+                        // PTT only controls MIC (speaking), not hearing
+
+                        const outputDeviceId = this.audioService.getSelectedOutputDeviceId();
+                        if (outputDeviceId && outputDeviceId !== 'default' && (remoteAudio as any).setSinkId) {
+                            (remoteAudio as any).setSinkId(outputDeviceId).catch((err: any) => console.warn('[SIP] setSinkId error:', err));
+                        }
+                    }
+                });
+
+                session.on('confirmed', () => {
+                    console.log('[SIP] ✅ Incoming call connected:', channelKey);
+                });
+
+            }).catch((err) => {
+                console.error('[SIP] Mic access error for incoming:', err);
+                session.terminate();
             });
         }
     }
@@ -144,6 +224,15 @@ export class SipService {
         if (sipSession) {
             sipSession.session.terminate();
             this.removeSession(channelKey);
+
+            // Cleanup audio element
+            const audioEl = this.remoteAudioElements.get(channelKey);
+            if (audioEl) {
+                audioEl.pause();
+                audioEl.srcObject = null;
+                this.remoteAudioElements.delete(channelKey);
+                console.log('[SIP] Audio element cleaned up for:', channelKey);
+            }
         }
     }
 
@@ -177,6 +266,42 @@ export class SipService {
             }
         }
         return null;
+    }
+
+    /**
+     * Mute local audio (mic) for PTT mode
+     */
+    muteChannel(channelKey: string): void {
+        const sessions = this.activeSessions.getValue();
+        const sipSession = sessions.get(channelKey);
+
+        if (sipSession && sipSession.session.connection) {
+            const senders = sipSession.session.connection.getSenders();
+            senders.forEach((sender: RTCRtpSender) => {
+                if (sender.track && sender.track.kind === 'audio') {
+                    sender.track.enabled = false;
+                    console.log('[SIP] 🔇 Mic muted for:', channelKey);
+                }
+            });
+        }
+    }
+
+    /**
+     * Unmute local audio (mic) for PTT mode  
+     */
+    unmuteChannel(channelKey: string): void {
+        const sessions = this.activeSessions.getValue();
+        const sipSession = sessions.get(channelKey);
+
+        if (sipSession && sipSession.session.connection) {
+            const senders = sipSession.session.connection.getSenders();
+            senders.forEach((sender: RTCRtpSender) => {
+                if (sender.track && sender.track.kind === 'audio') {
+                    sender.track.enabled = true;
+                    console.log('[SIP] 🎤 Mic unmuted for:', channelKey);
+                }
+            });
+        }
     }
 
     /**
@@ -239,6 +364,7 @@ export class SipService {
 
         session.on('ended', () => {
             console.log(`[SIP] Session ended: ${channelKey}`);
+            this.sessionEnded.next(channelKey);
             this.removeSession(channelKey);
         });
 

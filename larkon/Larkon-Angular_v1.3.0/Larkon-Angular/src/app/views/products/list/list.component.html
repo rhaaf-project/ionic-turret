@@ -1,0 +1,91 @@
+<div class="row">
+  <div class="col-xl-12">
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center gap-1">
+        <h4 class="card-title flex-grow-1">All Extensions</h4>
+
+        <a routerLink="/extensions/add" class="btn btn-sm btn-primary">
+          <i class="bx bx-plus me-1"></i> Add Extension
+        </a>
+      </div>
+      <div>
+        <div class="table-responsive">
+          <table class="table align-middle mb-0 table-hover table-centered">
+            <thead class="bg-light-subtle">
+              <tr>
+                <th style="width: 20px;">
+                  <div class="form-check ms-1">
+                    <input type="checkbox" class="form-check-input" id="customCheck1">
+                    <label class="form-check-label" for="customCheck1"></label>
+                  </div>
+                </th>
+                <th>Extension</th>
+                <th>Name</th>
+                <th>Status</th>
+                <th>Context</th>
+                <th>Assigned User</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (data of extensions; track $index) {
+              <tr>
+                <td>
+                  <div class="form-check ms-1">
+                    <input type="checkbox" class="form-check-input" id="customCheck2">
+                    <label class="form-check-label" for="customCheck2"></label>
+                  </div>
+                </td>
+                <td>
+                  <div class="d-flex align-items-center gap-2">
+                    <div class="d-block">
+                      <h5 class="mb-0 fs-13 text-reset">{{ data.extension }}</h5>
+                    </div>
+                  </div>
+                </td>
+                <td>{{ data.name }}</td>
+                <td>
+                  <span class="badge" [class.bg-success-subtle]="data.is_active" [class.text-success]="data.is_active"
+                    [class.bg-danger-subtle]="!data.is_active" [class.text-danger]="!data.is_active">
+                    {{ data.is_active ? 'Active' : 'Inactive' }}
+                  </span>
+                </td>
+                <td>{{ data.context }}</td>
+                <td>Unassigned</td>
+                <td>
+                  <div class="d-flex text-center">
+                    <a [routerLink]="['/extensions/edit', data.id]" class="btn btn-sm btn-soft-secondary me-1"><i
+                        class="bx bx-edit fs-16"></i></a>
+                    <a href="javascript:void(0);" (click)="deleteExtension(data.id)"
+                      class="btn btn-sm btn-soft-danger"><i class="bx bx-trash fs-16"></i></a>
+                  </div>
+                </td>
+              </tr>
+              }
+              @empty {
+              <tr>
+                <td colspan="7" class="text-center py-4">
+                  <div class="text-muted">
+                    <i class="bx bx-phone fs-1 mb-2 d-block"></i>
+                    <p class="mb-0">No extensions configured yet.</p>
+                    <a routerLink="/extensions/add" class="btn btn-sm btn-soft-primary mt-2">Add First Extension</a>
+                  </div>
+                </td>
+              </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card-footer border-top">
+        <nav aria-label="Page navigation example" class="pagination justify-content-end mb-0">
+          <ngb-pagination [collectionSize]="30" [page]="1">
+            <ng-template ngbPaginationPrevious>Previous</ng-template>
+            <ng-template ngbPaginationNext>Next</ng-template>
+          </ngb-pagination>
+        </nav>
+      </div>
+    </div>
+  </div>
+
+</div>

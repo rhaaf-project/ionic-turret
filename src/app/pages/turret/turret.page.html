@@ -1,6 +1,11 @@
 <!-- SmartX Turret Main Layout - Ported from vanilla JS -->
 <!-- Structure: Header + Container (Left Column + Middle Column) + FAB + Footer -->
 
+<!-- REMOTE AUDIO (Hidden element for SIP call audio) -->
+<audio id="remoteAudio" autoplay style="display: none;"></audio>
+<!-- RINGTONE AUDIO (Incoming call ring sound) -->
+<audio id="ringtone" src="assets/audio/phone-ringing-48238.mp3" loop style="display: none;"></audio>
+
 <!-- LOGIN OVERLAY -->
 <div id="loginOverlay" class="login-overlay" *ngIf="showLogin">
     <div class="login-logo-section">
@@ -34,12 +39,8 @@
     <div class="login-version">v.1712-1730</div>
 </div>
 
-<!-- PTT OVERLAY -->
-<div id="ptt-overlay" [class.active]="pttActive">
-    <span class="material-symbols-sharp ptt-icon">mic</span>
-    <div class="ptt-text">PTT ACTIVE</div>
-    <div class="ptt-subtext">{{ pttTargetName }}</div>
-</div>
+<!-- PTT OVERLAY - Hidden per user request, using ladder bars instead -->
+<div id="ptt-overlay" style="display: none;"></div>
 
 <!-- HEADER -->
 <header class="section-blue flex-shrink-0">
@@ -95,6 +96,7 @@
                                     <div class="call-cell" [class.active-channel]="channel.isActive"
                                         [class.calling-state]="channel.isCalling" [class.ptt-active]="channel.isPtt"
                                         [class.speaking-red]="channel.isPtt"
+                                        [class.speaking-green]="channel.isActive && !channel.isPtt"
                                         [class.selected]="channel.isSelected && !channel.isPtt"
                                         [class.drag-over]="dragOverChannel === channel.key"
                                         [attr.data-channel-key]="channel.key" (click)="selectChannel(channel)"
@@ -104,24 +106,25 @@
                                         (dragover)="onChannelDragOver($event, channel)"
                                         (dragleave)="onChannelDragLeave($event)"
                                         (drop)="onChannelDrop($event, channel)">
-                                        <!-- Ladder Bars -->
+                                        <!-- Ladder Bars - SmartX style (controlled by parent cell classes) -->
                                         <div class="ladder-bar left">
-                                            <div class="ladder-fill" [style.height.%]="channel.volumeIn"></div>
+                                            <div class="ladder-fill"></div>
                                         </div>
                                         <div class="ladder-bar right">
-                                            <div class="ladder-fill" [style.height.%]="channel.volumeOut"></div>
+                                            <div class="ladder-fill"></div>
                                         </div>
                                         <!-- Volume Icon -->
                                         <span class="material-symbols-sharp">volume_up</span>
                                         <!-- Cell Info -->
                                         <div class="cell-info">
-                                            <div class="cell-name">{{ channel.name }}</div>
+                                            <div class="cell-name">{{ channel.name || 'Ch ' + channel.position }}</div>
                                             <div class="cell-phone">{{ channel.extension }}</div>
                                         </div>
                                         <!-- Drag Handle (only show when occupied) -->
                                         @if (channel.name) {
                                         <div class="drag-handle" draggable="true"
                                             (dragstart)="onDragHandleStart($event, channel)"
+                                            (dragend)="onDragHandleEnd($event, channel)"
                                             (touchstart)="onDragHandleTouchStart($event, channel)"
                                             (touchmove)="onDragHandleTouchMove($event)"
                                             (touchend)="onDragHandleTouchEnd($event)">
@@ -174,9 +177,10 @@
                             @for (group of groups; track group.id) {
                             <div class="group-btn" [class.active-talk]="group.isActive"
                                 (mousedown)="startGroupPtt(group)" (mouseup)="stopGroupPtt(group)"
-                                (touchstart)="startGroupPtt(group)" (touchend)="stopGroupPtt(group)">
-                                <div class="group-title">{{ group.id }}</div>
-                                <div class="group-subtitle">HOLD TO TALK</div>
+                                (touchstart)="startGroupPtt(group)" (touchend)="stopGroupPtt(group)"
+                                (dragover)="onGroupBtnDragOver($event, group)" (drop)="onGroupBtnDrop($event, group)">
+                                <div class="group-title" style="pointer-events: none;">{{ group.id }}</div>
+                                <div class="group-subtitle" style="pointer-events: none;">HOLD TO TALK</div>
                             </div>
                             }
                         </div>
@@ -239,6 +243,57 @@
                                     <span class="material-symbols-sharp">delete</span>
                                 </div>
                                 <span class="dashboard-icon-text">Trash</span>
+                            </div>
+                        </div>
+                        }
+
+                        <!-- ============= GROUP TALK VIEW ============= -->
+                        @if (activeTabId === 'grouptalk') {
+                        <div class="grouptalk-container p-4" style="color: white;">
+                            <div class="fav-header mb-4">
+                                <div class="fav-view-header">
+                                    <div class="fav-title">
+                                        <span class="material-symbols-sharp" style="margin-right: 10px;">groups</span>
+                                        <span>GROUP TALK CONFIG</span>
+                                    </div>
+                                    <div class="fav-actions">
+                                        <div class="fav-btn fav-btn-close" (click)="switchTab('dashboard')">
+                                            CLOSE
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="d-flex gap-3 h-100">
+                                @for (group of groups; track group.id) {
+                                <div class="config-table slot-{{group.id}} flex-grow-1 d-flex flex-column"
+                                    (dragover)="onGroupBtnDragOver($event, group)"
+                                    (drop)="onGroupTableDrop($event, group)">
+                                    <div class="config-header p-2 text-center fw-bold"
+                                        style="background: #2a2a2a; border-bottom: 2px solid #444;">{{ group.name }}
+                                    </div>
+                                    <div class="config-grid p-2"
+                                        style="display: grid; grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(8, 1fr); gap: 5px; background: #1a1a1a; flex-grow: 1; height: 100%;">
+                                        @for (channel of channels; track channel.key) {
+                                        <div class="config-cell config-cell-grouptalk p-2 d-flex align-items-center justify-content-center"
+                                            [class.active]="channel.groups.includes(group.id)"
+                                            [style.background]="channel.groups.includes(group.id) ? '#2a2a2a' : '#222'"
+                                            [style.border]="channel.groups.includes(group.id) ? '2px solid var(--color-accent-green)' : '1px solid #444'"
+                                            [style.opacity]="channel.groups.includes(group.id) ? '1' : '0.6'"
+                                            (click)="toggleGroupMembership(channel, group.id)">
+
+                                            <div class="d-flex flex-column align-items-center">
+                                                <span class="fw-bold"
+                                                    [style.color]="channel.groups.includes(group.id) ? '#fff' : '#666'"
+                                                    [style.font-size]="channel.groups.includes(group.id) ? '1.1rem' : '0.9rem'">
+                                                    CH {{ channel.position }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        }
+                                    </div>
+                                </div>
+                                }
                             </div>
                         </div>
                         }
@@ -360,7 +415,8 @@
         <span class="status-text">SYSTEM STATUS: <span style="color: var(--color-accent-green);">{{ systemStatus
                 }}</span></span>
         <span class="status-divider">|</span>
-        <span class="status-text">CONNECTION: <span style="color: var(--color-accent-green);">{{ connectionStatus
+        <span class="status-text">CONNECTION: <span style="color: var(--color-accent-green);">{{ currentExtension ? 'EXT
+                ' + currentExtension + ' ' + connectionStatus : connectionStatus
                 }}</span></span>
     </div>
     <div class="status-right">
@@ -383,7 +439,7 @@
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
     </div>
     <div class="offcanvas-body">
-        <div class="drawer-menu-item" (click)="openTab('audio')" data-bs-dismiss="offcanvas">Audio</div>
+        <div class="drawer-menu-item" data-bs-toggle="offcanvas" data-bs-target="#audioSettingsDrawer">Audio</div>
 
         <div class="drawer-menu-item" (click)="toggleSubmenu('lines')">
             <span>Line</span>
@@ -637,9 +693,14 @@
     <div class="offcanvas-body">
         <div class="dialpad-container">
             <div class="dialpad-display-area" id="dialDisplay" draggable="true"
-                (dragstart)="handleDialDragStart($event)">{{ dialpadNumber }}</div>
+                (dragstart)="handleDialDragStart($event)" [class.connected]="dialpadConnected"
+                (touchstart)="handleDialTouchStart($event)" (touchmove)="handleDialTouchMove($event)"
+                (touchend)="handleDialTouchEnd($event)" [style.color]="dialpadConnected ? '#00ff66' : 'inherit'"
+                [style.borderColor]="dialpadConnected ? '#00ff66' : 'inherit'">
+                {{ dialpadCallerName || dialpadNumber }}
+            </div>
 
-            <div class="dialpad-grid" id="dialpadGrid">
+            <div class="dialpad-grid" id="dialpadGrid" *ngIf="!dialpadConnected">
                 <div class="dial-key" (click)="dialNum('1')">1</div>
                 <div class="dial-key" (click)="dialNum('2')">2<span>ABC</span></div>
                 <div class="dial-key" (click)="dialNum('3')">3<span>DEF</span></div>
@@ -722,6 +783,56 @@
                 }
             </ul>
         </div>
+    </div>
+</div>
+
+<!-- AUDIO SETTINGS DRAWER (Blue) -->
+<div class="offcanvas offcanvas-end section-blue-drawer" tabindex="-1" id="audioSettingsDrawer"
+    data-bs-backdrop="false">
+    <div class="offcanvas-header">
+        <div class="d-flex align-items-center">
+            <span class="material-symbols-sharp drawer-back-btn" data-bs-toggle="offcanvas"
+                data-bs-target="#toolsDrawer">arrow_back</span>
+            <h5 class="offcanvas-title" style="color: var(--color-accent-blue);">AUDIO SETTINGS</h5>
+        </div>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
+    </div>
+    <div class="offcanvas-body d-flex flex-column" style="gap: 20px;">
+        <!-- Microphone Selection -->
+        <div class="audio-setting-section">
+            <label style="color: #888; font-size: 12px; margin-bottom: 8px; display: block;">
+                <span class="material-symbols-sharp" style="vertical-align: middle; margin-right: 5px;">mic</span>
+                MICROPHONE
+            </label>
+            <select class="form-select bg-dark text-white border-secondary" [(ngModel)]="selectedInputDeviceId"
+                (change)="audioService.setInputDevice(selectedInputDeviceId)">
+                <option value="default">Default Microphone</option>
+                @for (device of audioInputDevices; track device.deviceId) {
+                <option [value]="device.deviceId">{{ device.label }}</option>
+                }
+            </select>
+        </div>
+
+        <!-- Speaker Selection -->
+        <div class="audio-setting-section">
+            <label style="color: #888; font-size: 12px; margin-bottom: 8px; display: block;">
+                <span class="material-symbols-sharp" style="vertical-align: middle; margin-right: 5px;">volume_up</span>
+                SPEAKER
+            </label>
+            <select class="form-select bg-dark text-white border-secondary" [(ngModel)]="selectedOutputDeviceId"
+                (change)="audioService.setOutputDevice(selectedOutputDeviceId)">
+                <option value="default">Default Speaker</option>
+                @for (device of audioOutputDevices; track device.deviceId) {
+                <option [value]="device.deviceId">{{ device.label }}</option>
+                }
+            </select>
+        </div>
+
+        <!-- Refresh Button -->
+        <button class="btn btn-outline-primary mt-3" (click)="audioService.enumerateDevices()">
+            <span class="material-symbols-sharp" style="vertical-align: middle; margin-right: 5px;">refresh</span>
+            Refresh Devices
+        </button>
     </div>
 </div>
 

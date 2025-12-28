@@ -1,0 +1,119 @@
+<div class="row">
+  <div class="col-xl-8 col-lg-8">
+    <div class="card">
+      <div class="card-header">
+        <h4 class="card-title">Call Details</h4>
+      </div>
+      <div class="card-body">
+        <div class="row mb-4">
+          <div class="col-md-6">
+            <h6 class="text-muted mb-2">Call Information</h6>
+            <table class="table table-borderless">
+              <tr>
+                <td class="text-muted" width="120">Call ID</td>
+                <td><strong>#CDR-001234</strong></td>
+              </tr>
+              <tr>
+                <td class="text-muted">Date/Time</td>
+                <td>Dec 26, 2025 - 17:45:30</td>
+              </tr>
+              <tr>
+                <td class="text-muted">Duration</td>
+                <td><span class="badge bg-success-subtle text-success">00:05:32</span></td>
+              </tr>
+              <tr>
+                <td class="text-muted">Channel</td>
+                <td>Channel 3</td>
+              </tr>
+            </table>
+          </div>
+          <div class="col-md-6">
+            <h6 class="text-muted mb-2">Parties</h6>
+            <table class="table table-borderless">
+              <tr>
+                <td class="text-muted" width="120">Caller</td>
+                <td><i class="bx bx-phone me-1"></i> 1001 (John Doe)</td>
+              </tr>
+              <tr>
+                <td class="text-muted">Callee</td>
+                <td><i class="bx bx-phone me-1"></i> 1002 (Jane Smith)</td>
+              </tr>
+              <tr>
+                <td class="text-muted">Status</td>
+                <td><span class="badge bg-success">Answered</span></td>
+              </tr>
+            </table>
+          </div>
+        </div>
+
+        <h6 class="text-muted mb-3">Call Timeline</h6>
+        <div class="timeline-alt py-0">
+          <div class="d-flex align-items-center mb-3">
+            <div
+              class="avatar-sm bg-primary-subtle rounded-circle d-flex align-items-center justify-content-center me-3">
+              <i class="bx bx-phone-incoming text-primary"></i>
+            </div>
+            <div>
+              <p class="mb-0 fw-medium">Call Initiated</p>
+              <small class="text-muted">17:45:30</small>
+            </div>
+          </div>
+          <div class="d-flex align-items-center mb-3">
+            <div
+              class="avatar-sm bg-success-subtle rounded-circle d-flex align-items-center justify-content-center me-3">
+              <i class="bx bx-check text-success"></i>
+            </div>
+            <div>
+              <p class="mb-0 fw-medium">Call Answered</p>
+              <small class="text-muted">17:45:35</small>
+            </div>
+          </div>
+          <div class="d-flex align-items-center">
+            <div
+              class="avatar-sm bg-danger-subtle rounded-circle d-flex align-items-center justify-content-center me-3">
+              <i class="bx bx-phone-off text-danger"></i>
+            </div>
+            <div>
+              <p class="mb-0 fw-medium">Call Ended</p>
+              <small class="text-muted">17:51:02</small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-4 col-lg-4">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="card-title mb-0">Recording</h5>
+      </div>
+      <div class="card-body text-center py-4">
+        <i class="bx bx-microphone fs-1 text-muted mb-3 d-block"></i>
+        <p class="text-muted mb-3">Call recording available</p>
+        <button class="btn btn-soft-primary">
+          <i class="bx bx-play me-1"></i> Play Recording
+        </button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h5 class="card-title mb-0">Actions</h5>
+      </div>
+      <div class="card-body">
+        <div class="d-grid gap-2">
+          <button class="btn btn-outline-primary">
+            <i class="bx bx-download me-1"></i> Download Recording
+          </button>
+          <button class="btn btn-outline-secondary">
+            <i class="bx bx-file me-1"></i> Export Details
+          </button>
+          <a routerLink="/call-logs/list" class="btn btn-primary">
+            <i class="bx bx-arrow-back me-1"></i> Back to Call Logs
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

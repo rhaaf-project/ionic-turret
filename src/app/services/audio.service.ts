@@ -5,6 +5,12 @@ import { Capacitor } from '@capacitor/core';
 
 export type AudioOutputMode = 'speaker' | 'earpiece';
 
+export interface AudioDevice {
+    deviceId: string;
+    label: string;
+    kind: 'audioinput' | 'audiooutput';
+}
+
 @Injectable({
     providedIn: 'root'
 })
@@ -14,11 +20,22 @@ export class AudioService {
     private pttStream: MediaStream | null = null;
     private outputMode = new BehaviorSubject<AudioOutputMode>('speaker');
 
+    // Audio device selection
+    private inputDevices = new BehaviorSubject<AudioDevice[]>([]);
+    private outputDevices = new BehaviorSubject<AudioDevice[]>([]);
+    private selectedInputDeviceId = new BehaviorSubject<string>('default');
+    private selectedOutputDeviceId = new BehaviorSubject<string>('default');
+
     public outputMode$ = this.outputMode.asObservable();
+    public inputDevices$ = this.inputDevices.asObservable();
+    public outputDevices$ = this.outputDevices.asObservable();
+    public selectedInputDeviceId$ = this.selectedInputDeviceId.asObservable();
+    public selectedOutputDeviceId$ = this.selectedOutputDeviceId.asObservable();
 
     constructor() {
         this.initAudioContext();
         this.detectAudioOutput();
+        this.enumerateDevices();
     }
 
     /**
@@ -26,6 +43,73 @@ export class AudioService {
      */
     private initAudioContext(): void {
         this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    }
+
+    /**
+     * Enumerate available audio devices (microphones & speakers)
+     */
+    async enumerateDevices(): Promise<void> {
+        try {
+            // Request permission first to get full device labels
+            await navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+                stream.getTracks().forEach(track => track.stop());
+            }).catch(() => { });
+
+            const devices = await navigator.mediaDevices.enumerateDevices();
+
+            const inputs: AudioDevice[] = devices
+                .filter(d => d.kind === 'audioinput')
+                .map(d => ({
+                    deviceId: d.deviceId,
+                    label: d.label || `Microphone ${d.deviceId.slice(0, 8)}`,
+                    kind: 'audioinput' as const
+                }));
+
+            const outputs: AudioDevice[] = devices
+                .filter(d => d.kind === 'audiooutput')
+                .map(d => ({
+                    deviceId: d.deviceId,
+                    label: d.label || `Speaker ${d.deviceId.slice(0, 8)}`,
+                    kind: 'audiooutput' as const
+                }));
+
+            this.inputDevices.next(inputs);
+            this.outputDevices.next(outputs);
+
+            console.log('[Audio] Input devices:', inputs.length, 'Output devices:', outputs.length);
+        } catch (err) {
+            console.error('[Audio] Failed to enumerate devices:', err);
+        }
+    }
+
+    /**
+     * Set selected input (microphone) device
+     */
+    setInputDevice(deviceId: string): void {
+        this.selectedInputDeviceId.next(deviceId);
+        console.log('[Audio] Selected input device:', deviceId);
+    }
+
+    /**
+     * Set selected output (speaker) device
+     */
+    setOutputDevice(deviceId: string): void {
+        this.selectedOutputDeviceId.next(deviceId);
+        console.log('[Audio] Selected output device:', deviceId);
+    }
+
+    /**
+     * Get current selected input device ID
+     */
+    getSelectedInputDeviceId(): string {
+        return this.selectedInputDeviceId.getValue();
+    }
+
+    /**
+     * Get current selected output device ID
+     */
+    getSelectedOutputDeviceId(): string {
+        return this.selectedOutputDeviceId.getValue();
     }
 
     /**
@@ -186,5 +270,64 @@ export class AudioService {
             this.audioContext.close();
             this.audioContext = null;
         }
+    }
+
+    // ============================================
+    // AUDIO RECORDER
+    // ============================================
+    private mediaRecorder: MediaRecorder | null = null;
+    private recordedChunks: Blob[] = [];
+    private recordingStream: MediaStream | null = null;
+
+    async startRecording(): Promise<void> {
+        this.recordedChunks = [];
+        try {
+            this.recordingStream = await navigator.mediaDevices.getUserMedia({
+                audio: {
+                    echoCancellation: true,
+                    noiseSuppression: true,
+                    autoGainControl: true
+                }
+            });
+
+            this.mediaRecorder = new MediaRecorder(this.recordingStream);
+
+            this.mediaRecorder.ondataavailable = (event) => {
+                if (event.data.size > 0) {
+                    this.recordedChunks.push(event.data);
+                }
+            };
+
+            this.mediaRecorder.start();
+            console.log('[Audio] Recording started');
+        } catch (err) {
+            console.error('[Audio] Failed to start recording:', err);
+            throw err;
+        }
+    }
+
+    stopRecording(): Promise<Blob> {
+        return new Promise((resolve, reject) => {
+            if (!this.mediaRecorder || this.mediaRecorder.state === 'inactive') {
+                return reject('Recorder not active');
+            }
+
+            this.mediaRecorder.onstop = () => {
+                const blob = new Blob(this.recordedChunks, { type: 'audio/webm' });
+                this.recordedChunks = [];
+
+                // Stop all tracks
+                if (this.recordingStream) {
+                    this.recordingStream.getTracks().forEach(track => track.stop());
+                    this.recordingStream = null;
+                }
+
+                this.mediaRecorder = null;
+                resolve(blob);
+            };
+
+            this.mediaRecorder.stop();
+            console.log('[Audio] Recording stopped');
+        });
     }
 }

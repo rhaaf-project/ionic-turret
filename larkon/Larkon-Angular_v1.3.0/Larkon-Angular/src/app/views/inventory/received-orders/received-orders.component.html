@@ -1,0 +1,85 @@
+<div class="row">
+  <div class="col-xl-12">
+    <div class="card">
+      <div class="d-flex card-header justify-content-between align-items-center">
+        <div>
+          <h4 class="card-title">Channel Configuration</h4>
+          <p class="text-muted mb-0">Configure channel settings and preferences</p>
+        </div>
+      </div>
+      <div class="card-body">
+        <form>
+          <div class="row">
+            <div class="col-lg-6">
+              <div class="mb-3">
+                <label class="form-label">Default Channel Type</label>
+                <select class="form-select">
+                  <option value="sip">SIP</option>
+                  <option value="whatsapp">WhatsApp</option>
+                  <option value="teams">Microsoft Teams</option>
+                </select>
+              </div>
+            </div>
+            <div class="col-lg-6">
+              <div class="mb-3">
+                <label class="form-label">Grid Size</label>
+                <select class="form-select">
+                  <option value="4x3">4 x 3 (12 channels)</option>
+                  <option value="4x4">4 x 4 (16 channels)</option>
+                  <option value="6x4">6 x 4 (24 channels)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-lg-6">
+              <div class="mb-3">
+                <label class="form-label">Auto Answer</label>
+                <div class="form-check form-switch">
+                  <input class="form-check-input" type="checkbox" id="autoAnswer">
+                  <label class="form-check-label" for="autoAnswer">Enable auto-answer for incoming calls</label>
+                </div>
+              </div>
+            </div>
+            <div class="col-lg-6">
+              <div class="mb-3">
+                <label class="form-label">Ring Timeout (seconds)</label>
+                <input type="number" class="form-control" value="30" min="5" max="120">
+              </div>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-lg-6">
+              <div class="mb-3">
+                <label class="form-label">Default Recording</label>
+                <div class="form-check form-switch">
+                  <input class="form-check-input" type="checkbox" id="recording">
+                  <label class="form-check-label" for="recording">Record all calls by default</label>
+                </div>
+              </div>
+            </div>
+            <div class="col-lg-6">
+              <div class="mb-3">
+                <label class="form-label">Call Hold Music</label>
+                <select class="form-select">
+                  <option>Default</option>
+                  <option>Classical</option>
+                  <option>Jazz</option>
+                  <option>None</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="card-footer">
+        <div class="d-flex justify-content-end gap-2">
+          <button class="btn btn-outline-secondary">Reset to Defaults</button>
+          <button class="btn btn-primary">Save Configuration</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

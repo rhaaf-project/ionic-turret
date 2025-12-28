@@ -1,0 +1,95 @@
+<div class="row">
+  <div class="col-xl-12">
+    <div class="card">
+      <div class="d-flex card-header justify-content-between align-items-center">
+        <div>
+          <h4 class="card-title">Call Logs</h4>
+          <p class="text-muted mb-0">View all call history</p>
+        </div>
+        <div ngbDropdown class="dropdown">
+          <a ngbDropdownToggle href="javascript:void(0);" class="dropdown-toggle btn btn-sm btn-outline-light rounded">
+            Today
+          </a>
+          <div ngbDropdownMenu class="dropdown-menu dropdown-menu-end">
+            <a href="javascript:void(0);" class="dropdown-item">Today</a>
+            <a href="javascript:void(0);" class="dropdown-item">This Week</a>
+            <a href="javascript:void(0);" class="dropdown-item">This Month</a>
+            <a href="javascript:void(0);" class="dropdown-item">Export CSV</a>
+          </div>
+        </div>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table align-middle mb-0 table-hover table-centered">
+            <thead class="bg-light-subtle">
+              <tr>
+                <th>Call ID</th>
+                <th>Time</th>
+                <th>Caller</th>
+                <th>Callee</th>
+                <th>Duration</th>
+                <th>Channel</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (log of logs; track log.id) {
+              <tr>
+                <td><a href="javascript:void(0);" class="fw-medium text-body">#{{ log.id }}</a></td>
+                <td>{{ log.calldate | date:'short' }}</td>
+                <td>
+                  <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                      <h5 class="mb-0 fs-13 text-reset">{{ log.clid }}</h5>
+                      <small class="text-muted">{{ log.src }}</small>
+                    </div>
+                  </div>
+                </td>
+                <td>{{ log.dst }}</td>
+                <td>{{ log.duration }}s</td>
+                <td>
+                  <span class="badge bg-light-subtle text-muted border py-1 px-2">{{ log.channel }}</span>
+                </td>
+                <td>
+                  <span class="badge" [class.bg-success-subtle]="log.disposition === 'ANSWERED'"
+                    [class.text-success]="log.disposition === 'ANSWERED'"
+                    [class.bg-danger-subtle]="log.disposition === 'NO ANSWER' || log.disposition === 'FAILED'"
+                    [class.text-danger]="log.disposition === 'NO ANSWER' || log.disposition === 'FAILED'"
+                    [class.bg-warning-subtle]="log.disposition === 'BUSY'"
+                    [class.text-warning]="log.disposition === 'BUSY'">
+                    {{ log.disposition }}
+                  </span>
+                </td>
+                <td>
+                  <a href="javascript:void(0);" class="btn btn-sm btn-soft-secondary"><i
+                      class="bx bx-show fs-16"></i></a>
+                </td>
+              </tr>
+              }
+              @empty {
+              <tr>
+                <td colspan="8" class="text-center py-4">
+                  <div class="text-muted">
+                    <i class="bx bx-phone-off fs-1 mb-2 d-block"></i>
+                    <p class="mb-0">No call logs available.</p>
+                  </div>
+                </td>
+              </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card-footer border-top">
+        <nav aria-label="Page navigation example">
+          <ngb-pagination [collectionSize]="total" [(page)]="page" [pageSize]="pageSize"
+            (pageChange)="onPageChange($event)" class="pagination justify-content-end mb-0">
+            <ng-template ngbPaginationPrevious>Previous</ng-template>
+            <ng-template ngbPaginationNext>Next</ng-template>
+          </ngb-pagination>
+        </nav>
+      </div>
+    </div>
+  </div>
+</div>
