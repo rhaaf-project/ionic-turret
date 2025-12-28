@@ -113,6 +113,17 @@
                                         <div class="ladder-bar right">
                                             <div class="ladder-fill"></div>
                                         </div>
+                                        <!-- Audio Recording Indicator (when recording assigned) -->
+                                        @if (channel.recordingId) {
+                                        <div class="channel-audio-indicator"
+                                            style="position: absolute; top: 5px; left: 20px; z-index: 5; display: flex; align-items: center; gap: 3px;">
+                                            <span class="material-symbols-sharp"
+                                                style="font-size: 14px; color: var(--color-accent-blue); cursor: pointer;"
+                                                (click)="playRecordingOnChannel(channel.key); $event.stopPropagation()">
+                                                play_circle
+                                            </span>
+                                        </div>
+                                        }
                                         <!-- Volume Icon -->
                                         <span class="material-symbols-sharp">volume_up</span>
                                         <!-- Cell Info -->
@@ -344,6 +355,58 @@
                             </div>
                             <div class="mt-3 text-center" style="color: #666; font-size: 12px;">
                                 Touch & drag up/down to adjust volume
+                            </div>
+                        </div>
+                        }
+
+                        <!-- ============= AUDIO REC VIEW (Assigned Recordings) ============= -->
+                        @if (activeTabId === 'audiorec') {
+                        <div class="audiorec-container p-4" style="color: white;">
+                            <div class="fav-header mb-4">
+                                <div class="fav-view-header">
+                                    <div class="fav-title">
+                                        <span class="material-symbols-sharp"
+                                            style="margin-right: 10px;">play_circle</span>
+                                        <span>AUDIO RECORDINGS</span>
+                                    </div>
+                                    <div class="fav-actions">
+                                        <div class="fav-btn fav-btn-close" (click)="switchTab('dashboard')">
+                                            CLOSE
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="audiorec-grid"
+                                style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+                                @for (channel of getChannelsWithRecordings(); track channel.key) {
+                                <div class="audiorec-card p-3"
+                                    style="background: #1a1a1a; border-radius: 8px; border: 1px solid #333;">
+                                    <div class="d-flex flex-column">
+                                        <span class="fw-bold mb-2" style="color: #00bcd4;">CH {{ channel.position
+                                            }}</span>
+                                        <span class="mb-2" style="font-size: 12px; color: #888;">{{
+                                            getRecordingById(channel.recordingId!)?.name }}</span>
+                                        <div class="d-flex gap-2">
+                                            <button class="btn btn-sm btn-success flex-grow-1"
+                                                (click)="playRecordingOnChannel(channel.key)">
+                                                <span class="material-symbols-sharp"
+                                                    style="font-size: 16px;">play_arrow</span> Play
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger"
+                                                (click)="removeRecordingFromChannel(channel.key)">
+                                                <span class="material-symbols-sharp"
+                                                    style="font-size: 16px;">delete</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                }
+                                @if (getChannelsWithRecordings().length === 0) {
+                                <div class="text-center text-muted py-4" style="grid-column: 1 / -1;">
+                                    No recordings assigned. Drag recordings from drawer to channels.
+                                </div>
+                                }
                             </div>
                         </div>
                         }
@@ -784,9 +847,9 @@
     </div>
 </div>
 
-<!-- AUDIO RECORDINGS DRAWER (Blue) -->
+<!-- AUDIO RECORDINGS DRAWER (Blue) - SmartX Style -->
 <div class="offcanvas offcanvas-end section-blue-drawer" tabindex="-1" id="audioRecordingsDrawer"
-    data-bs-backdrop="false">
+    data-bs-backdrop="false" data-bs-scroll="true">
     <div class="offcanvas-header">
         <div class="d-flex align-items-center">
             <span class="material-symbols-sharp drawer-back-btn" data-bs-toggle="offcanvas"
@@ -794,19 +857,128 @@
             <h5 class="offcanvas-title" style="color: var(--color-accent-blue);">AUDIO RECORDING</h5>
         </div>
         <button type="button" class="btn btn-sm btn-outline-primary create-recording-btn"
-            (click)="showRecordingPanel()">CREATE</button>
+            (click)="showRecordingPanel = true"
+            style="border-color: var(--color-accent-blue); color: var(--color-accent-blue);">CREATE</button>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
     </div>
-    <div class="offcanvas-body d-flex flex-column">
-        <div class="recording-list-container">
-            <ul class="recording-list" id="audioRecordingList">
-                @for (rec of audioRecordings; track rec.id) {
-                <li class="recording-item" draggable="true" (dragstart)="onRecordingDragStart($event, rec)">
-                    <span class="rec-name">{{ rec.name }}</span>
-                    <span class="rec-duration">{{ rec.duration }}</span>
+    <div class="offcanvas-body d-flex flex-column" style="position: relative;">
+        <!-- Recording List -->
+        <div class="recording-list-container flex-grow-1" style="overflow-y: auto;">
+            <ul class="recording-list" id="audioRecordingList" style="list-style: none; padding: 0; margin: 0;">
+                @for (rec of recordings; track rec.id) {
+                <li class="rec-item d-flex align-items-center justify-content-between" draggable="true"
+                    (dragstart)="onRecordingDragStart($event, rec)"
+                    style="padding: 12px; border-bottom: 1px solid #333; background: #1a1a1a; cursor: grab;">
+                    <!-- Normal display mode -->
+                    @if (editingRecording?.id !== rec.id) {
+                    <div class="rec-info d-flex align-items-center flex-grow-1">
+                        <span class="material-symbols-sharp"
+                            style="font-size: 24px; color: var(--color-accent-blue); margin-right: 12px;">audiotrack</span>
+                        <div class="rec-text d-flex flex-column">
+                            <span class="rec-filename" style="color: #fff; font-size: 0.95rem;">{{ rec.name }}</span>
+                            <span class="rec-meta" style="color: #666; font-size: 0.75rem;">{{ rec.duration }} | {{
+                                rec.date }}</span>
+                        </div>
+                    </div>
+                    <div class="rec-actions d-flex gap-1">
+                        <div class="rec-btn" (click)="playRecording(rec.id); $event.stopPropagation()"
+                            style="cursor: pointer; padding: 5px;"
+                            [title]="playingRecordingId === rec.id ? 'Stop' : 'Play'">
+                            <span class="material-symbols-sharp"
+                                [style.color]="playingRecordingId === rec.id ? '#ff4d4d' : '#4CAF50'"
+                                style="font-size: 18px;">{{ playingRecordingId === rec.id ? 'stop' : 'play_arrow'
+                                }}</span>
+                        </div>
+                        <div class="rec-btn" (click)="editRecordingName(rec); $event.stopPropagation()"
+                            style="cursor: pointer; padding: 5px;" title="Edit">
+                            <span class="material-symbols-sharp" style="font-size: 18px; color: #888;">edit</span>
+                        </div>
+                        <div class="rec-btn" (click)="deleteRecording(rec.id); $event.stopPropagation()"
+                            style="cursor: pointer; padding: 5px;" title="Delete">
+                            <span class="material-symbols-sharp" style="font-size: 18px; color: #ff4d4d;">delete</span>
+                        </div>
+                    </div>
+                    } @else {
+                    <!-- Edit mode -->
+                    <div class="d-flex align-items-center flex-grow-1 gap-2">
+                        <input type="text" id="editRecordingNameInput" [(ngModel)]="currentRecordingName"
+                            class="form-control flex-grow-1" (focus)="showVirtualKeyboard()"
+                            style="background: #222; color: white; border: 1px solid var(--color-accent-blue);">
+                        <button class="btn btn-sm btn-success"
+                            (click)="saveEditedRecordingName(); $event.stopPropagation()">
+                            <span class="material-symbols-sharp" style="font-size: 16px;">check</span>
+                        </button>
+                        <button class="btn btn-sm btn-secondary"
+                            (click)="cancelEditRecordingName(); $event.stopPropagation()">
+                            <span class="material-symbols-sharp" style="font-size: 16px;">close</span>
+                        </button>
+                    </div>
+                    }
                 </li>
                 }
+                @if (recordings.length === 0) {
+                <li class="text-center text-muted py-4">No recordings yet. Click CREATE to start.</li>
+                }
             </ul>
+        </div>
+
+        <!-- Recording Panel (Slide Up from Bottom) -->
+        <div class="recording-panel-fixed" [class.show]="showRecordingPanel"
+            style="position: absolute; bottom: 0; left: 0; right: 0; background: #1a1a1a; border-top: 2px solid var(--color-accent-blue); padding: 15px; border-radius: 8px 8px 0 0; z-index: 100;"
+            [style.transform]="showRecordingPanel ? 'translateY(0)' : 'translateY(100%)'">
+            <div class="recording-panel-header d-flex justify-content-between align-items-center mb-3">
+                <div class="rec-footer-title" style="color: #fff; font-weight: 500;">Create New Recording</div>
+                <button class="btn btn-sm btn-secondary" (click)="cancelRecording()">Cancel</button>
+            </div>
+
+            <!-- Voice Visualizer + Record Button -->
+            <div class="rec-control-row d-flex align-items-center justify-content-center gap-3 mb-3">
+                <div class="voice-visualizer d-flex gap-1 align-items-end" style="height: 40px;">
+                    <div class="wave-bar" [style.height]="isRecording ? '60%' : '20%'"
+                        style="width: 4px; background: var(--color-accent-blue); border-radius: 2px;"></div>
+                    <div class="wave-bar" [style.height]="isRecording ? '80%' : '20%'"
+                        style="width: 4px; background: var(--color-accent-blue); border-radius: 2px;"></div>
+                    <div class="wave-bar" [style.height]="isRecording ? '40%' : '20%'"
+                        style="width: 4px; background: var(--color-accent-blue); border-radius: 2px;"></div>
+                    <div class="wave-bar" [style.height]="isRecording ? '100%' : '20%'"
+                        style="width: 4px; background: var(--color-accent-blue); border-radius: 2px;"></div>
+                    <div class="wave-bar" [style.height]="isRecording ? '50%' : '20%'"
+                        style="width: 4px; background: var(--color-accent-blue); border-radius: 2px;"></div>
+                    <div class="wave-bar" [style.height]="isRecording ? '70%' : '20%'"
+                        style="width: 4px; background: var(--color-accent-blue); border-radius: 2px;"></div>
+                    <div class="wave-bar" [style.height]="isRecording ? '30%' : '20%'"
+                        style="width: 4px; background: var(--color-accent-blue); border-radius: 2px;"></div>
+                    <div class="wave-bar" [style.height]="isRecording ? '90%' : '20%'"
+                        style="width: 4px; background: var(--color-accent-blue); border-radius: 2px;"></div>
+                </div>
+                <div class="rec-record-btn" (click)="toggleRecording()"
+                    style="width: 60px; height: 60px; border-radius: 50%; border: 3px solid var(--color-accent-blue); display: flex; align-items: center; justify-content: center; cursor: pointer;"
+                    [style.background]="isRecording ? '#ff4d4d' : '#333'">
+                    <span class="material-symbols-sharp" style="font-size: 28px; color: white;">{{ isRecording ? 'stop'
+                        : 'mic' }}</span>
+                </div>
+                <div class="rec-timer" style="font-size: 1.2rem; color: #fff; font-family: monospace; min-width: 60px;">
+                    {{ recordingTimer }}</div>
+            </div>
+
+            <!-- Save Controls (shown after stop) -->
+            @if (recordingComplete) {
+            <div class="rec-save-controls">
+                <input type="text" [(ngModel)]="currentRecordingName" class="form-control mb-2"
+                    placeholder="Enter recording name..."
+                    style="background: #222; color: white; border: 1px solid #444;">
+                <div class="d-flex gap-2">
+                    <button class="btn btn-success flex-grow-1" (click)="saveRecordingWithName()">
+                        <span class="material-symbols-sharp">save</span> Save
+                    </button>
+                    <button class="btn btn-outline-secondary" (click)="cancelRecording()">Cancel</button>
+                </div>
+            </div>
+            }
+        </div>
+
+        <div class="text-center mt-2" style="font-size: 11px; color: #666;">
+            Drag recording to channel to assign
         </div>
     </div>
 </div>
@@ -984,5 +1156,21 @@
         <div class="duplicate-modal-title">Notice</div>
         <div class="duplicate-modal-message">{{ duplicateModalMessage }}</div>
         <button class="duplicate-modal-btn" (click)="showDuplicateModal = false">OK</button>
+    </div>
+</div>
+
+<!-- DELETE CONFIRMATION MODAL -->
+<div class="duplicate-modal-overlay" *ngIf="showDeleteModal" (click)="showDeleteModal = false">
+    <div class="duplicate-modal" (click)="$event.stopPropagation()"
+        style="border-color: var(--color-accent-red); max-width: 280px;">
+        <div class="duplicate-modal-icon" style="color: var(--color-accent-red);">
+            <span class="material-symbols-sharp">delete</span>
+        </div>
+        <div class="duplicate-modal-title" style="color: var(--color-accent-red);">Confirm Delete</div>
+        <div class="duplicate-modal-message">Delete "{{ pendingDeleteRecording?.name }}"?</div>
+        <div class="d-flex gap-2 justify-content-center">
+            <button class="btn btn-secondary btn-sm" (click)="showDeleteModal = false">No</button>
+            <button class="btn btn-danger btn-sm" (click)="confirmDeleteRecording()">Yes, Delete</button>
+        </div>
     </div>
 </div>

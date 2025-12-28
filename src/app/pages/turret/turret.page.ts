@@ -21,6 +21,7 @@ export interface Channel {
     volumeIn: number;
     volumeOut: number;
     groups: string[];
+    recordingId?: string;   // Assigned recording ID
 }
 
 export interface Group {
@@ -47,6 +48,7 @@ export interface Recording {
     name: string;
     duration?: string;
     date?: string;
+    filePath?: string;  // Base64 data URL or file path
 }
 
 export interface Tab {
@@ -140,6 +142,23 @@ export class TurretPage implements OnInit, OnDestroy {
     volumeDragChannel: Channel | null = null;
     volumeDragStartY = 0;
     volumeDragStartValue = 0;
+
+    // Audio Recordings
+    recordings: Recording[] = [];
+    isRecording = false;
+    mediaRecorder: MediaRecorder | null = null;
+    recordingChunks: Blob[] = [];
+    recordingStartTime = 0;
+    currentRecordingName = '';
+    showRecordingPanel = false;
+    recordingTimer = '00:00';
+    recordingComplete = false;
+    timerInterval: any = null;
+    editingRecording: Recording | null = null;
+    showDeleteModal = false;
+    pendingDeleteRecording: Recording | null = null;
+    playingRecordingId: string | null = null;
+    currentAudio: HTMLAudioElement | null = null;
 
     // Current SIP Extension
     currentExtension = '';
@@ -401,6 +420,7 @@ export class TurretPage implements OnInit, OnDestroy {
         this.initChannels();
         this.initContacts();
         this.initTabs();
+        this.loadRecordings();
         this.startClock();
         this.audioService.resumeContext();
         this.setupPttListener();
@@ -847,6 +867,14 @@ export class TurretPage implements OnInit, OnDestroy {
             }
         }
 
+        // 3. Check for recording drop
+        const recordingId = event.dataTransfer.getData('recording-id');
+        if (recordingId) {
+            this.assignRecordingToChannel(targetChannel.key, recordingId);
+            this.draggedChannel = null;
+            return;
+        }
+
         this.draggedChannel = null;
     }
 
@@ -1040,6 +1068,10 @@ export class TurretPage implements OnInit, OnDestroy {
         }
         if (panel === 'audio') {
             this.activeTabId = 'audio';
+            return;
+        }
+        if (panel === 'recordings') {
+            this.activeTabId = 'audiorec';
             return;
         }
 
@@ -1534,15 +1566,6 @@ export class TurretPage implements OnInit, OnDestroy {
                 offcanvas.show();
             }
         }, 200);
-    }
-
-    // === DRAWER: RECORDINGS ===
-    showRecordingPanel(): void {
-        console.log('Show recording panel');
-    }
-
-    onRecordingDragStart(event: DragEvent, rec: Recording): void {
-        event.dataTransfer?.setData('recording', JSON.stringify(rec));
     }
 
     // ============================================
@@ -2478,6 +2501,263 @@ export class TurretPage implements OnInit, OnDestroy {
 
         document.addEventListener('mousemove', onMouseMove);
         document.addEventListener('mouseup', onMouseUp);
+    }
+
+    // === AUDIO RECORDING (Mic Recording) ===
+    loadRecordings(): void {
+        const saved = localStorage.getItem('smartucx_recordings');
+        if (saved) {
+            this.recordings = JSON.parse(saved);
+            console.log('📂 Loaded recordings:', this.recordings.length);
+        }
+    }
+
+    saveRecordingsToStorage(): void {
+        localStorage.setItem('smartucx_recordings', JSON.stringify(this.recordings));
+        console.log('💾 Saved recordings to localStorage');
+        // TODO: Also save to DB via API
+    }
+
+    async startMicRecording(): Promise<void> {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            this.mediaRecorder = new MediaRecorder(stream);
+            this.recordingChunks = [];
+            this.recordingStartTime = Date.now();
+            this.isRecording = true;
+
+            this.mediaRecorder.ondataavailable = (e) => {
+                if (e.data.size > 0) {
+                    this.recordingChunks.push(e.data);
+                }
+            };
+
+            this.mediaRecorder.onstop = () => {
+                stream.getTracks().forEach(track => track.stop());
+            };
+
+            this.mediaRecorder.start();
+            console.log('🎙️ Recording started');
+        } catch (err) {
+            console.error('Failed to start recording:', err);
+            alert('Microphone access denied!');
+        }
+    }
+
+    stopMicRecording(): void {
+        if (!this.mediaRecorder || !this.isRecording) return;
+
+        this.mediaRecorder.stop();
+        this.isRecording = false;
+
+        // Wait for final data
+        setTimeout(() => {
+            const blob = new Blob(this.recordingChunks, { type: 'audio/webm' });
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const duration = Math.round((Date.now() - this.recordingStartTime) / 1000);
+                const name = this.currentRecordingName || `Recording ${this.recordings.length + 1}`;
+
+                const recording: Recording = {
+                    id: `rec-${Date.now()}`,
+                    name: name,
+                    duration: `${Math.floor(duration / 60)}:${(duration % 60).toString().padStart(2, '0')}`,
+                    date: new Date().toLocaleDateString(),
+                    filePath: reader.result as string
+                };
+
+                this.recordings.push(recording);
+                this.saveRecordingsToStorage();
+                this.currentRecordingName = '';
+                console.log('🎙️ Recording saved:', recording.name);
+            };
+            reader.readAsDataURL(blob);
+        }, 100);
+    }
+
+    deleteRecording(recordingId: string): void {
+        const rec = this.getRecordingById(recordingId);
+        if (!rec) return;
+
+        this.pendingDeleteRecording = rec;
+        this.showDeleteModal = true;
+    }
+
+    confirmDeleteRecording(): void {
+        if (this.pendingDeleteRecording) {
+            this.recordings = this.recordings.filter(r => r.id !== this.pendingDeleteRecording!.id);
+            this.saveRecordingsToStorage();
+            console.log('🗑️ Deleted recording:', this.pendingDeleteRecording.name);
+        }
+        this.pendingDeleteRecording = null;
+        this.showDeleteModal = false;
+    }
+
+    onRecordingDragStart(event: DragEvent, rec: Recording): void {
+        if (event.dataTransfer) {
+            event.dataTransfer.setData('recording-id', rec.id);
+            event.dataTransfer.effectAllowed = 'copy';
+        }
+        console.log('🎵 Drag recording:', rec.name);
+    }
+
+    assignRecordingToChannel(channelKey: string, recordingId: string): void {
+        const channel = this.channels.find(c => c.key === channelKey);
+        if (channel) {
+            channel.recordingId = recordingId;
+            this.channels = [...this.channels];
+            console.log(`📎 Assigned recording ${recordingId} to ${channelKey}`);
+        }
+    }
+
+    removeRecordingFromChannel(channelKey: string): void {
+        const channel = this.channels.find(c => c.key === channelKey);
+        if (channel) {
+            channel.recordingId = undefined;
+            this.channels = [...this.channels];
+            console.log(`🗑️ Removed recording from ${channelKey}`);
+        }
+    }
+
+    getRecordingById(recordingId: string): Recording | undefined {
+        return this.recordings.find(r => r.id === recordingId);
+    }
+
+    playRecordingOnChannel(channelKey: string): void {
+        const channel = this.channels.find(c => c.key === channelKey);
+        if (!channel || !channel.recordingId) return;
+
+        const recording = this.getRecordingById(channel.recordingId);
+        if (!recording || !recording.filePath) return;
+
+        const audio = new Audio(recording.filePath);
+        audio.play();
+        console.log(`▶️ Playing recording on ${channelKey}:`, recording.name);
+    }
+
+    getChannelsWithRecordings(): Channel[] {
+        return this.channels.filter(c => c.recordingId);
+    }
+
+    // === SmartX-style Recording Panel Methods ===
+    toggleRecording(): void {
+        if (this.isRecording) {
+            // Stop recording
+            this.stopMicRecording();
+            this.stopRecordingTimer();
+            this.recordingComplete = true;
+        } else {
+            // Start recording
+            this.recordingComplete = false;
+            this.startMicRecording();
+            this.startRecordingTimer();
+        }
+    }
+
+    startRecordingTimer(): void {
+        this.recordingTimer = '00:00';
+        let seconds = 0;
+        this.timerInterval = setInterval(() => {
+            seconds++;
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            this.recordingTimer = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }, 1000);
+    }
+
+    stopRecordingTimer(): void {
+        if (this.timerInterval) {
+            clearInterval(this.timerInterval);
+            this.timerInterval = null;
+        }
+    }
+
+    playRecording(recordingId: string): void {
+        // If clicking same recording that's playing, stop it
+        if (this.playingRecordingId === recordingId && this.currentAudio) {
+            this.currentAudio.pause();
+            this.currentAudio = null;
+            this.playingRecordingId = null;
+            console.log('⏹️ Stopped recording:', recordingId);
+            return;
+        }
+
+        // Stop any currently playing audio
+        if (this.currentAudio) {
+            this.currentAudio.pause();
+            this.currentAudio = null;
+        }
+
+        const recording = this.getRecordingById(recordingId);
+        if (!recording || !recording.filePath) {
+            console.log('Recording not found or no file');
+            return;
+        }
+
+        this.currentAudio = new Audio(recording.filePath);
+        this.playingRecordingId = recordingId;
+
+        // Reset state when audio ends
+        this.currentAudio.onended = () => {
+            this.playingRecordingId = null;
+            this.currentAudio = null;
+        };
+
+        this.currentAudio.play();
+        console.log('▶️ Playing recording:', recording.name);
+    }
+
+    editRecordingName(rec: Recording): void {
+        this.editingRecording = rec;
+        this.currentRecordingName = rec.name;
+        // Focus the input and show VK after a tick
+        setTimeout(() => {
+            const input = document.getElementById('editRecordingNameInput') as HTMLInputElement;
+            if (input) {
+                input.focus();
+                this.showVirtualKeyboard();
+            }
+        }, 100);
+        console.log('✏️ Editing recording:', rec.name);
+    }
+
+    saveEditedRecordingName(): void {
+        if (this.editingRecording && this.currentRecordingName.trim()) {
+            this.editingRecording.name = this.currentRecordingName.trim();
+            this.saveRecordingsToStorage();
+            console.log('✏️ Renamed recording to:', this.editingRecording.name);
+        }
+        this.editingRecording = null;
+        this.currentRecordingName = '';
+        this.hideVirtualKeyboard();
+    }
+
+    cancelEditRecordingName(): void {
+        this.editingRecording = null;
+        this.currentRecordingName = '';
+        this.hideVirtualKeyboard();
+    }
+
+    saveRecordingWithName(): void {
+        // Recording already captured by stopMicRecording, just reset UI
+        this.recordingComplete = false;
+        this.showRecordingPanel = false;
+        this.recordingTimer = '00:00';
+        console.log('💾 Recording saved with name:', this.currentRecordingName);
+    }
+
+    cancelRecording(): void {
+        if (this.isRecording) {
+            this.mediaRecorder?.stop();
+            this.isRecording = false;
+        }
+        this.stopRecordingTimer();
+        this.recordingComplete = false;
+        this.showRecordingPanel = false;
+        this.recordingTimer = '00:00';
+        this.currentRecordingName = '';
+        this.recordingChunks = [];
+        console.log('❌ Recording cancelled');
     }
 }
 
