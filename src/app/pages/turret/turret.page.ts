@@ -135,6 +135,12 @@ export class TurretPage implements OnInit, OnDestroy {
     selectedInputDeviceId = 'default';
     selectedOutputDeviceId = 'default';
 
+    // Per-channel volume (0-100)
+    channelVolumes: Map<string, number> = new Map();
+    volumeDragChannel: Channel | null = null;
+    volumeDragStartY = 0;
+    volumeDragStartValue = 0;
+
     // Current SIP Extension
     currentExtension = '';
 
@@ -168,6 +174,8 @@ export class TurretPage implements OnInit, OnDestroy {
         items[0] = { id: 'whatsapp', label: 'WhatsApp', icon: 'chat', color: '#25d366', bgColor: 'rgba(37, 211, 102, 0.2)', panel: 'whatsapp', isDeletable: false };
         items[1] = { id: 'teams', label: 'Teams', icon: 'groups', color: '#6264a7', bgColor: 'rgba(98, 100, 167, 0.2)', panel: 'teams', isDeletable: false };
         items[2] = { id: 'audiorec', label: 'Audio Rec', icon: 'play_circle', color: '#888', bgColor: 'rgba(255, 255, 255, 0.1)', panel: 'recordings', isDeletable: false };
+        items[3] = { id: 'grouptalk', label: 'Group Talk', icon: 'record_voice_over', color: '#ff9800', bgColor: 'rgba(255, 152, 0, 0.2)', panel: 'grouptalk', isDeletable: false };
+        items[4] = { id: 'audio', label: 'Audio', icon: 'graphic_eq', color: '#00bcd4', bgColor: 'rgba(0, 188, 212, 0.2)', panel: 'audio', isDeletable: false };
         return items;
     }
 
@@ -1023,7 +1031,17 @@ export class TurretPage implements OnInit, OnDestroy {
 
     // === DASHBOARD ===
     openPanel(panel: string): void {
-        console.log('Open panel:', panel);
+        console.log('Open tab:', panel, this.activeTabId);
+
+        // Handle special panels that use tabs
+        if (panel === 'grouptalk') {
+            this.activeTabId = 'grouptalk';
+            return;
+        }
+        if (panel === 'audio') {
+            this.activeTabId = 'audio';
+            return;
+        }
 
         // Handle favourite panels - format: favourite_fav-xxx
         if (panel.startsWith('favourite_')) {
@@ -2399,6 +2417,67 @@ export class TurretPage implements OnInit, OnDestroy {
                 console.log('⚠️ SIP Registration timeout, entering offline mode');
             }
         }, 5000);
+    }
+
+    // === AUDIO VOLUME CONTROL ===
+    getChannelVolume(channelKey: string): number {
+        return this.channelVolumes.get(channelKey) ?? 80; // Default 80%
+    }
+
+    setChannelVolume(channelKey: string, volume: number): void {
+        const clampedVolume = Math.max(0, Math.min(100, Math.round(volume)));
+        this.channelVolumes.set(channelKey, clampedVolume);
+        // TODO: Apply to AudioContext gain node
+        console.log(`🔊 Volume ${channelKey}: ${clampedVolume}%`);
+    }
+
+    onVolumeTouchStart(event: TouchEvent, channel: Channel): void {
+        event.preventDefault();
+        this.volumeDragChannel = channel;
+        this.volumeDragStartY = event.touches[0].clientY;
+        this.volumeDragStartValue = this.getChannelVolume(channel.key);
+        console.log(`🎚️ Volume drag start: ${channel.key}`);
+    }
+
+    onVolumeTouchMove(event: TouchEvent, channel: Channel): void {
+        if (!this.volumeDragChannel || this.volumeDragChannel.key !== channel.key) return;
+        event.preventDefault();
+
+        const deltaY = this.volumeDragStartY - event.touches[0].clientY; // Up = positive
+        const deltaVolume = deltaY * 0.5; // 2px = 1%
+        const newVolume = this.volumeDragStartValue + deltaVolume;
+        this.setChannelVolume(channel.key, newVolume);
+    }
+
+    onVolumeTouchEnd(event: TouchEvent, channel: Channel): void {
+        if (this.volumeDragChannel) {
+            console.log(`🎚️ Volume drag end: ${channel.key} = ${this.getChannelVolume(channel.key)}%`);
+        }
+        this.volumeDragChannel = null;
+    }
+
+    onVolumeMouseDown(event: MouseEvent, channel: Channel): void {
+        this.volumeDragChannel = channel;
+        this.volumeDragStartY = event.clientY;
+        this.volumeDragStartValue = this.getChannelVolume(channel.key);
+
+        const onMouseMove = (e: MouseEvent) => {
+            if (!this.volumeDragChannel) return;
+            const deltaY = this.volumeDragStartY - e.clientY;
+            const deltaVolume = deltaY * 0.5;
+            const newVolume = this.volumeDragStartValue + deltaVolume;
+            this.setChannelVolume(channel.key, newVolume);
+        };
+
+        const onMouseUp = () => {
+            console.log(`🎚️ Volume drag end: ${channel.key} = ${this.getChannelVolume(channel.key)}%`);
+            this.volumeDragChannel = null;
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+        };
+
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseup', onMouseUp);
     }
 }
 

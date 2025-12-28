@@ -298,6 +298,56 @@
                         </div>
                         }
 
+                        <!-- ============= AUDIO SETTINGS VIEW ============= -->
+                        @if (activeTabId === 'audio') {
+                        <div class="audio-container p-4" style="color: white;">
+                            <div class="fav-header mb-4">
+                                <div class="fav-view-header">
+                                    <div class="fav-title">
+                                        <span class="material-symbols-sharp"
+                                            style="margin-right: 10px;">graphic_eq</span>
+                                        <span>AUDIO SETTINGS</span>
+                                    </div>
+                                    <div class="fav-actions">
+                                        <div class="fav-btn fav-btn-close" (click)="switchTab('dashboard')">
+                                            CLOSE
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="audio-grid"
+                                style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px;">
+                                @for (channel of channels; track channel.key) {
+                                <div class="audio-cell p-2"
+                                    style="background: #1a1a1a; border-radius: 6px; border: 1px solid #333; cursor: ns-resize;"
+                                    (touchstart)="onVolumeTouchStart($event, channel)"
+                                    (touchmove)="onVolumeTouchMove($event, channel)"
+                                    (touchend)="onVolumeTouchEnd($event, channel)"
+                                    (mousedown)="onVolumeMouseDown($event, channel)">
+                                    <div class="d-flex flex-column align-items-center">
+                                        <span style="font-size: 10px; color: #888; margin-bottom: 4px;">CH {{
+                                            channel.position }}</span>
+                                        <!-- Volume Bar -->
+                                        <div class="volume-bar-container"
+                                            style="width: 30px; height: 50px; background: #333; border-radius: 3px; position: relative; overflow: hidden;">
+                                            <div class="volume-bar-fill"
+                                                [style.height.%]="getChannelVolume(channel.key)"
+                                                style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, #00ff66, #66ff99); transition: height 0.1s;">
+                                            </div>
+                                        </div>
+                                        <span style="font-size: 9px; color: #aaa; margin-top: 3px;">{{
+                                            getChannelVolume(channel.key) }}%</span>
+                                    </div>
+                                </div>
+                                }
+                            </div>
+                            <div class="mt-3 text-center" style="color: #666; font-size: 12px;">
+                                Touch & drag up/down to adjust volume
+                            </div>
+                        </div>
+                        }
+
                         <!-- ============= FAVOURITE TAB VIEW ============= -->
                         @if (activeTabId !== 'dashboard' && activeTab) {
                         <div class="favourite-container p-4">
