@@ -2460,66 +2460,58 @@ export class TurretPage implements OnInit, OnDestroy {
     // LOGIN METHODS
     // ============================================
     processLogin(): void {
-        this.loginStatus = 'Authenticating...';
+        this.loginStatus = 'Connecting to PBX...';
         this.loginStatusColor = '#ffcc00';
         this.hideKeyboard();
 
-        // Use Laravel API for authentication
-        this.laravelAuth.login(this.loginUsername, this.loginPassword).subscribe({
-            next: (result) => {
-                if (result.success && result.extension) {
-                    this.loginStatus = 'Connecting to PBX...';
-                    console.log(`📞 Login as ${this.loginUsername} → Extension ${result.extension.extension}`);
+        // TODO: Replace with Laravel API when server credentials are fixed
+        // Currently using hardcoded mapping as fallback
+        const extensionMap: { [key: string]: string } = {
+            'admin': '6000',
+            'demo': '6000',
+            'demo1': '6001',
+            'demo2': '6002',
+            'demo3': '6003',
+            'demo4': '6004',
+            'test': '6005'
+        };
+        const extension = extensionMap[this.loginUsername.toLowerCase()] || '6000';
+        this.currentExtension = extension;
+        console.log(`📞 Login as ${this.loginUsername} → Extension ${extension}`);
 
-                    // Store extension info
-                    this.currentExtension = result.extension.extension;
+        // Register SIP extension
+        this.sipService.registerExtension({
+            server: '103.154.80.172',
+            port: 8089,
+            extension: extension,
+            password: 'Maja1234'
+        });
 
-                    // Register SIP with API-provided credentials
-                    this.sipService.registerExtension({
-                        server: result.extension.sip_server || '103.154.80.172',
-                        port: 8089,
-                        extension: result.extension.extension,
-                        password: result.extension.secret || 'Maja1234'
-                    });
-
-                    // Wait for SIP registration
-                    const sub = this.sipService.registrationStatus$.subscribe(status => {
-                        if (status === 'registered') {
-                            this.loginStatus = 'Connected!';
-                            this.loginStatusColor = '#00ff66';
-                            setTimeout(() => {
-                                this.showLogin = false;
-                                console.log('✅ SIP Registered, entered dashboard');
-                            }, 500);
-                            sub.unsubscribe();
-                        } else if (status === 'failed') {
-                            this.loginStatus = 'SIP Connection Failed';
-                            this.loginStatusColor = '#ff4d4d';
-                            sub.unsubscribe();
-                        }
-                    });
-
-                    // Timeout fallback - enter anyway after 5s
-                    setTimeout(() => {
-                        if (this.showLogin) {
-                            this.loginStatus = 'Entering (Offline Mode)...';
-                            this.showLogin = false;
-                            console.log('⚠️ SIP Registration timeout, entering offline mode');
-                        }
-                    }, 5000);
-                } else {
-                    // Login failed
-                    this.loginStatus = result.error || 'Login Failed';
-                    this.loginStatusColor = '#ff4d4d';
-                    console.error('❌ Login failed:', result.error);
-                }
-            },
-            error: (err) => {
-                this.loginStatus = 'Authentication Error';
+        // Wait for registration then enter dashboard
+        const sub = this.sipService.registrationStatus$.subscribe(status => {
+            if (status === 'registered') {
+                this.loginStatus = 'Connected!';
+                this.loginStatusColor = '#00ff66';
+                setTimeout(() => {
+                    this.showLogin = false;
+                    console.log('✅ SIP Registered, entered dashboard');
+                }, 500);
+                sub.unsubscribe();
+            } else if (status === 'failed') {
+                this.loginStatus = 'Connection Failed';
                 this.loginStatusColor = '#ff4d4d';
-                console.error('❌ Auth error:', err);
+                sub.unsubscribe();
             }
         });
+
+        // Timeout fallback - enter anyway after 5s
+        setTimeout(() => {
+            if (this.showLogin) {
+                this.loginStatus = 'Entering (Offline Mode)...';
+                this.showLogin = false;
+                console.log('⚠️ SIP Registration timeout, entering offline mode');
+            }
+        }, 5000);
     }
 
     // === AUDIO VOLUME CONTROL ===
