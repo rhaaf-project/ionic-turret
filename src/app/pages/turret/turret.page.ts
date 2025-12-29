@@ -2743,13 +2743,13 @@ export class TurretPage implements OnInit, OnDestroy {
         return this.recordings.filter(r => recordingIds.has(r.id));
     }
 
-    // Get color for a specific recording ID
+    // Get color for a specific recording ID (grey if not assigned)
     getRecordingColor(recordingId: string): string {
         for (const channel of this.channels) {
             const rec = channel.channelRecordings?.find(r => r.id === recordingId);
             if (rec) return rec.color;
         }
-        return '#4CAF50'; // default green
+        return '#888'; // grey = not assigned
     }
 
     // Check if a channel has a specific recording

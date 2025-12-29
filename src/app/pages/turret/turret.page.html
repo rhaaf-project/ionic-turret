@@ -115,16 +115,16 @@
                                         </div>
                                         <!-- Audio Recording Indicators (up to 3 per channel) -->
                                         <div class="channel-audio-indicators"
-                                            style="position: absolute; top: 5px; left: 20px; z-index: 100; display: flex; align-items: center; gap: 2px;">
-                                            @for (rec of channel.channelRecordings || []; track rec.id) {
-                                            <span class="material-symbols-sharp channel-audio-indicator"
-                                                [style.color]="rec.color"
-                                                style="font-size: 14px; cursor: pointer; background: rgba(0,0,0,0.5); border-radius: 2px; padding: 1px;"
-                                                (click)="playRecording(rec.id); $event.stopPropagation()"
-                                                [title]="getRecordingById(rec.id)?.name || 'Recording'">
-                                                play_arrow
-                                            </span>
-                                            }
+                                            style="position: absolute; top: 3px; left: 15px; z-index: 200; display: flex; align-items: center; gap: 2px;">
+                                            <ng-container *ngFor="let rec of channel.channelRecordings || []">
+                                                <span class="material-symbols-sharp channel-audio-indicator"
+                                                    [style.color]="rec.color"
+                                                    style="font-size: 16px; cursor: pointer; background: rgba(0,0,0,0.8); border-radius: 3px; padding: 2px;"
+                                                    (click)="playRecording(rec.id); $event.stopPropagation()"
+                                                    [title]="getRecordingById(rec.id)?.name || 'Recording'">
+                                                    play_arrow
+                                                </span>
+                                            </ng-container>
                                         </div>
                                         <!-- Volume Icon -->
                                         <span class="material-symbols-sharp">volume_up</span>
@@ -908,8 +908,8 @@
                     <!-- Normal display mode -->
                     @if (editingRecording?.id !== rec.id) {
                     <div class="rec-info d-flex align-items-center flex-grow-1">
-                        <span class="material-symbols-sharp"
-                            style="font-size: 24px; color: var(--color-accent-blue); margin-right: 12px;">play_arrow</span>
+                        <span class="material-symbols-sharp" [style.color]="getRecordingColor(rec.id)"
+                            style="font-size: 24px; margin-right: 12px; transition: color 0.3s;">play_arrow</span>
                         <div class="rec-text d-flex flex-column">
                             <span class="rec-filename" style="color: #fff; font-size: 0.95rem;">{{ rec.name }}</span>
                             <span class="rec-meta" style="color: #666; font-size: 0.75rem;">{{ rec.duration }} | {{
