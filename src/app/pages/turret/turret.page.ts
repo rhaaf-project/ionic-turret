@@ -1,4 +1,4 @@
-// TurretPage - SmartX UI Port to Angular/Ionic
+// TurretPage - SmartX UI Port to Angular/Ionic 
 import { Component, OnInit, OnDestroy, CUSTOM_ELEMENTS_SCHEMA, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -7,6 +7,11 @@ import { SipService } from '../../services/sip.service';
 import { AudioService } from '../../services/audio.service';
 
 declare var bootstrap: any; // Bootstrap JS
+
+export interface ChannelRecording {
+    id: string;
+    color: string;
+}
 
 export interface Channel {
     key: string;
@@ -21,8 +26,7 @@ export interface Channel {
     volumeIn: number;
     volumeOut: number;
     groups: string[];
-    recordingId?: string;   // Assigned recording ID
-    recordingColor?: string; // Color for audio indicator (#ff6b6b, #4ecdc4, #45b7d1)
+    channelRecordings?: ChannelRecording[];  // Max 3 recordings per channel
 }
 
 export interface Group {
@@ -2610,12 +2614,33 @@ export class TurretPage implements OnInit, OnDestroy {
     assignRecordingToChannel(channelKey: string, recordingId: string): void {
         const channelIndex = this.channels.findIndex(c => c.key === channelKey);
         if (channelIndex !== -1) {
+            const channel = this.channels[channelIndex];
+            const currentRecordings = channel.channelRecordings || [];
+
+            // Check max 3 recordings per channel
+            if (currentRecordings.length >= 3) {
+                this.duplicateModalMessage = `Channel already has 3 recordings assigned. Remove one first.`;
+                this.showDuplicateModal = true;
+                console.log(`❌ Channel ${channelKey} already has 3 audios`);
+                return;
+            }
+
+            // Check if already assigned
+            if (currentRecordings.some(r => r.id === recordingId)) {
+                this.duplicateModalMessage = `This recording is already assigned to this channel.`;
+                this.showDuplicateModal = true;
+                console.log(`❌ Recording ${recordingId} already assigned to ${channelKey}`);
+                return;
+            }
+
             // Get next color from cycling array
-            const recordingColor = this.AUDIO_COLORS[this.audioColorIndex % this.AUDIO_COLORS.length];
+            const color = this.AUDIO_COLORS[this.audioColorIndex % this.AUDIO_COLORS.length];
             this.audioColorIndex++;
 
-            // Create new channel object with recordingId and color
-            const updatedChannel = { ...this.channels[channelIndex], recordingId, recordingColor };
+            // Add recording to channel
+            const newRecordings = [...currentRecordings, { id: recordingId, color }];
+            const updatedChannel = { ...channel, channelRecordings: newRecordings };
+
             // Create new array with updated channel
             this.channels = [
                 ...this.channels.slice(0, channelIndex),
@@ -2637,15 +2662,29 @@ export class TurretPage implements OnInit, OnDestroy {
             // Auto-switch to audiorec dashboard tab
             this.openPanel('recordings');
 
-            console.log(`📎 Assigned recording ${recordingId} to ${channelKey} with color ${recordingColor}`);
+            console.log(`📎 Assigned recording ${recordingId} to ${channelKey} with color ${color} (${newRecordings.length}/3)`);
         }
     }
 
-    removeRecordingFromChannel(channelKey: string): void {
-        const channel = this.channels.find(c => c.key === channelKey);
-        if (channel) {
-            channel.recordingId = undefined;
-            this.channels = [...this.channels];
+    removeRecordingFromChannel(channelKey: string, recordingId?: string): void {
+        const channelIndex = this.channels.findIndex(c => c.key === channelKey);
+        if (channelIndex !== -1) {
+            const channel = this.channels[channelIndex];
+            let newRecordings: ChannelRecording[] = [];
+
+            if (recordingId) {
+                // Remove specific recording
+                newRecordings = (channel.channelRecordings || []).filter(r => r.id !== recordingId);
+            }
+            // else remove all recordings from channel
+
+            const updatedChannel = { ...channel, channelRecordings: newRecordings.length > 0 ? newRecordings : undefined };
+            this.channels = [
+                ...this.channels.slice(0, channelIndex),
+                updatedChannel,
+                ...this.channels.slice(channelIndex + 1)
+            ];
+            this.cdr.detectChanges();
             console.log(`🗑️ Removed recording from ${channelKey}`);
         }
     }
@@ -2656,18 +2695,38 @@ export class TurretPage implements OnInit, OnDestroy {
 
     playRecordingOnChannel(channelKey: string): void {
         const channel = this.channels.find(c => c.key === channelKey);
-        if (!channel || !channel.recordingId) return;
+        if (!channel || !channel.channelRecordings?.length) return;
 
-        const recording = this.getRecordingById(channel.recordingId);
-        if (!recording || !recording.filePath) return;
-
-        const audio = new Audio(recording.filePath);
-        audio.play();
-        console.log(`▶️ Playing recording on ${channelKey}:`, recording.name);
+        // Play all recordings on this channel
+        channel.channelRecordings.forEach(rec => {
+            this.playRecording(rec.id);
+        });
     }
 
     getChannelsWithRecordings(): Channel[] {
-        return this.channels.filter(c => c.recordingId);
+        return this.channels.filter(c => c.channelRecordings && c.channelRecordings.length > 0);
+    }
+
+    // Get recording by color (for legend tables)
+    getRecordingByColor(color: string): Recording | undefined {
+        for (const channel of this.channels) {
+            const rec = channel.channelRecordings?.find(r => r.color === color);
+            if (rec) {
+                return this.getRecordingById(rec.id);
+            }
+        }
+        return undefined;
+    }
+
+    // Get channel names that have this color recording (for legend tables)
+    getChannelsByRecordingColor(color: string): string {
+        const channelNames: string[] = [];
+        for (const channel of this.channels) {
+            if (channel.channelRecordings?.some(r => r.color === color)) {
+                channelNames.push(`CH${channel.position}`);
+            }
+        }
+        return channelNames.length > 0 ? channelNames.join(', ') : '';
     }
 
     // === SmartX-style Recording Panel Methods ===

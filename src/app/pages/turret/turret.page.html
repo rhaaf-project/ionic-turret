@@ -113,16 +113,18 @@
                                         <div class="ladder-bar right">
                                             <div class="ladder-fill"></div>
                                         </div>
-                                        <!-- Audio Recording Indicator (SmartX style: always rendered, opacity controlled) -->
+                                        <!-- Audio Recording Indicators (up to 3 per channel) -->
                                         <div class="channel-audio-indicators"
-                                            style="position: absolute; top: 5px; left: 20px; z-index: 100; display: flex; align-items: center; gap: 3px;">
+                                            style="position: absolute; top: 5px; left: 20px; z-index: 100; display: flex; align-items: center; gap: 2px;">
+                                            @for (rec of channel.channelRecordings || []; track rec.id) {
                                             <span class="material-symbols-sharp channel-audio-indicator"
-                                                [style.opacity]="channel.recordingId ? '1' : '0'"
-                                                [style.color]="channel.recordingColor || '#4CAF50'"
-                                                style="font-size: 16px; cursor: pointer; transition: opacity 0.2s, color 0.2s; background: rgba(0,0,0,0.5); border-radius: 3px; padding: 2px;"
-                                                (click)="playRecordingOnChannel(channel.key); $event.stopPropagation()">
+                                                [style.color]="rec.color"
+                                                style="font-size: 14px; cursor: pointer; background: rgba(0,0,0,0.5); border-radius: 2px; padding: 1px;"
+                                                (click)="playRecording(rec.id); $event.stopPropagation()"
+                                                [title]="getRecordingById(rec.id)?.name || 'Recording'">
                                                 play_arrow
                                             </span>
+                                            }
                                         </div>
                                         <!-- Volume Icon -->
                                         <span class="material-symbols-sharp">volume_up</span>
@@ -377,41 +379,47 @@
                                 </div>
                             </div>
 
+                            <!-- 2x8 Channel Grid -->
                             <div class="audiorec-grid"
-                                style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
-                                @for (channel of getChannelsWithRecordings(); track channel.key) {
-                                <div class="audiorec-card p-3" [style.borderColor]="channel.recordingColor || '#333'"
-                                    style="background: #1a1a1a; border-radius: 8px; border-left: 4px solid;">
-                                    <div class="d-flex flex-column">
-                                        <div class="d-flex align-items-center mb-2">
-                                            <span class="material-symbols-sharp"
-                                                [style.color]="channel.recordingColor || '#4CAF50'"
-                                                style="font-size: 20px; margin-right: 8px;">play_arrow</span>
-                                            <span class="fw-bold" [style.color]="channel.recordingColor || '#00bcd4'">CH
-                                                {{ channel.position }}</span>
-                                        </div>
-                                        <span class="mb-2" style="font-size: 12px; color: #aaa;">{{
-                                            getRecordingById(channel.recordingId!)?.name }}</span>
-                                        <div class="d-flex gap-2">
-                                            <button class="btn btn-sm flex-grow-1"
-                                                [style.backgroundColor]="channel.recordingColor || '#4CAF50'"
-                                                [style.borderColor]="channel.recordingColor || '#4CAF50'"
-                                                style="color: white;" (click)="playRecordingOnChannel(channel.key)">
-                                                <span class="material-symbols-sharp"
-                                                    style="font-size: 16px;">play_arrow</span> Play
-                                            </button>
-                                            <button class="btn btn-sm btn-outline-danger"
-                                                (click)="removeRecordingFromChannel(channel.key)">
-                                                <span class="material-symbols-sharp"
-                                                    style="font-size: 16px;">delete</span>
-                                            </button>
-                                        </div>
+                                style="display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; margin-bottom: 20px;">
+                                @for (channel of channels; track channel.key) {
+                                <div class="audiorec-cell p-2"
+                                    style="background: #1a1a1a; border-radius: 6px; border: 1px solid #333; text-align: center; min-height: 60px;">
+                                    <div class="cell-header" style="font-size: 10px; color: #888; margin-bottom: 4px;">
+                                        CH {{ channel.position }}</div>
+                                    <!-- Show 1-3 play icons based on assigned recordings -->
+                                    <div class="cell-indicators"
+                                        style="display: flex; justify-content: center; gap: 3px; flex-wrap: wrap;">
+                                        @for (rec of channel.channelRecordings || []; track rec.id) {
+                                        <span class="material-symbols-sharp" [style.color]="rec.color"
+                                            style="font-size: 18px; cursor: pointer;" (click)="playRecording(rec.id)"
+                                            [title]="getRecordingById(rec.id)?.name || 'Recording'">
+                                            play_arrow
+                                        </span>
+                                        }
+                                        @if (!channel.channelRecordings?.length) {
+                                        <span style="font-size: 10px; color: #444;">--</span>
+                                        }
                                     </div>
                                 </div>
                                 }
-                                @if (getChannelsWithRecordings().length === 0) {
-                                <div class="text-center text-muted py-4" style="grid-column: 1 / -1;">
-                                    No recordings assigned. Drag recordings from drawer to channels.
+                            </div>
+
+                            <!-- 3 Legend Tables (one per color) -->
+                            <div class="audiorec-legends" style="display: flex; flex-direction: column; gap: 12px;">
+                                @for (color of AUDIO_COLORS; track color; let i = $index) {
+                                <div class="legend-table" [style.borderLeftColor]="color"
+                                    style="background: #1a1a1a; border-radius: 6px; border-left: 4px solid; padding: 8px 12px;">
+                                    <div class="legend-header d-flex align-items-center gap-2 mb-2">
+                                        <span class="material-symbols-sharp" [style.color]="color"
+                                            style="font-size: 20px;">play_arrow</span>
+                                        <span style="font-weight: bold;" [style.color]="color">
+                                            {{ getRecordingByColor(color)?.name || 'No recording assigned' }}
+                                        </span>
+                                    </div>
+                                    <div class="legend-channels" style="font-size: 11px; color: #888;">
+                                        Channels: {{ getChannelsByRecordingColor(color) || 'None' }}
+                                    </div>
                                 </div>
                                 }
                             </div>
