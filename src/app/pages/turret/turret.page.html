@@ -954,6 +954,7 @@
                     <div class="d-flex align-items-center flex-grow-1 gap-2">
                         <input type="text" id="editRecordingNameInput" [(ngModel)]="currentRecordingName"
                             class="form-control flex-grow-1" (focus)="showVirtualKeyboard()"
+                            (keydown.enter)="saveEditedRecordingName(); $event.preventDefault()"
                             style="background: #222; color: white; border: 1px solid var(--color-accent-blue);">
                         <button class="btn btn-sm btn-success"
                             (click)="saveEditedRecordingName(); $event.stopPropagation()">
@@ -1167,7 +1168,7 @@
         <div class="kb-key" (click)="typeKey('-')">-</div>
         <div class="kb-key space" (click)="typeKey(' ')">SPACE</div>
         <div class="kb-key" (click)="typeKey('.')">.</div>
-        <div class="kb-key wide" style="background:#0088ff;" (click)="hideKeyboard()">DONE</div>
+        <div class="kb-key wide" style="background:#0088ff;" (click)="vkDone()">DONE</div>
     </div>
     <!-- Symbols Panel -->
     <div class="vk-symbols-panel" [style.display]="vkSymbols ? 'block' : 'none'">

@@ -2343,6 +2343,28 @@ export class TurretPage implements OnInit, OnDestroy {
         this.vkSymbols = false;
     }
 
+    // Done button - dispatch Enter key and hide keyboard
+    vkDone(): void {
+        if (this.vkInput) {
+            // Dispatch Enter key event to trigger form submit
+            const enterEvent = new KeyboardEvent('keydown', {
+                key: 'Enter',
+                code: 'Enter',
+                keyCode: 13,
+                which: 13,
+                bubbles: true,
+                cancelable: true
+            });
+            this.vkInput.dispatchEvent(enterEvent);
+
+            // Also dispatch input event to ensure ngModel updates
+            this.vkInput.dispatchEvent(new Event('input', { bubbles: true }));
+
+            console.log('⌨️ VK Done - Enter dispatched');
+        }
+        this.hideKeyboard();
+    }
+
     typeKey(char: string): void {
         if (this.vkInput) {
             const value = this.vkInput.value;
