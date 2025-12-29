@@ -1,5 +1,5 @@
 // TurretPage - SmartX UI Port to Angular/Ionic
-import { Component, OnInit, OnDestroy, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
+import { Component, OnInit, OnDestroy, CUSTOM_ELEMENTS_SCHEMA, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
@@ -413,7 +413,8 @@ export class TurretPage implements OnInit, OnDestroy {
 
     constructor(
         private sipService: SipService,
-        public audioService: AudioService
+        public audioService: AudioService,
+        private cdr: ChangeDetectorRef
     ) { }
 
     ngOnInit(): void {
@@ -2612,6 +2613,8 @@ export class TurretPage implements OnInit, OnDestroy {
                 updatedChannel,
                 ...this.channels.slice(channelIndex + 1)
             ];
+            // Force change detection
+            this.cdr.detectChanges();
             console.log(`📎 Assigned recording ${recordingId} to ${channelKey}, channel has recordingId:`, updatedChannel.recordingId);
         }
     }
