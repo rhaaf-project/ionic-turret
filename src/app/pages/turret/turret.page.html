@@ -223,7 +223,7 @@
                     <div class="main-content-view" id="main-content-view">
 
                         <!-- ============= DASHBOARD VIEW ============= -->
-                        @if (activeTabId === 'dashboard') {
+                        @if (isPanelActive('dashboard')) {
                         <div class="dashboard-grid" id="dashboard-grid">
                             <!-- 24 Slots (6x4 grid) - each can be icon or empty -->
                             @for (slot of dashboardLayout; track $index; let i = $index) {
@@ -276,7 +276,7 @@
                         }
 
                         <!-- ============= GROUP TALK VIEW ============= -->
-                        @if (activeTabId === 'grouptalk') {
+                        @if (isPanelActive('grouptalk')) {
                         <div class="grouptalk-container p-4" style="color: white;">
                             <div class="fav-header mb-4">
                                 <div class="fav-view-header">
@@ -327,7 +327,7 @@
                         }
 
                         <!-- ============= AUDIO SETTINGS VIEW ============= -->
-                        @if (activeTabId === 'audio') {
+                        @if (isPanelActive('audio')) {
                         <div class="audio-container p-4" style="color: white;">
                             <div class="fav-header mb-4">
                                 <div class="fav-view-header">
@@ -383,7 +383,7 @@
                         }
 
                         <!-- ============= AUDIO REC VIEW (Assigned Recordings) ============= -->
-                        @if (activeTabId === 'audiorec') {
+                        @if (isPanelActive('audiorec')) {
                         <div class="audiorec-container p-4" style="color: white;">
                             <div class="fav-header mb-4">
                                 <div class="fav-view-header">
@@ -469,7 +469,7 @@
                         }
 
                         <!-- ============= FAVOURITE TAB VIEW ============= -->
-                        @if (activeTabId !== 'dashboard' && activeTab) {
+                        @if (isPanelActive('fav') && activeTab) {
                         <div class="favourite-container p-4">
                             <!-- Header Actions -->
                             <div class="fav-header">

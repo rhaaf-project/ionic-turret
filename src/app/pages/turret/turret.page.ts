@@ -192,6 +192,11 @@ export class TurretPage implements OnInit, OnDestroy {
         return this.activeTab?.items || [];
     }
 
+    // Check if active tab matches a panel type (for HTML template conditional rendering)
+    isPanelActive(panelType: Tab['panelType']): boolean {
+        return this.activeTab?.panelType === panelType;
+    }
+
     // Initialize tabs with default dashboard
     private initTabs(): void {
         this.tabs = [{
