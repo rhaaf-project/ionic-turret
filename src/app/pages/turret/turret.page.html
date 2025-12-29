@@ -114,16 +114,14 @@
                                             <div class="ladder-fill"></div>
                                         </div>
                                         <!-- Audio Recording Indicator (when recording assigned) -->
-                                        @if (channel.recordingId) {
-                                        <div class="channel-audio-indicator"
-                                            style="position: absolute; top: 5px; left: 20px; z-index: 5; display: flex; align-items: center; gap: 3px;">
+                                        <div class="channel-audio-indicator" *ngIf="channel.recordingId"
+                                            style="position: absolute; top: 5px; left: 20px; z-index: 100; display: flex; align-items: center; gap: 3px; background: rgba(0,0,0,0.7); padding: 2px 4px; border-radius: 4px;">
                                             <span class="material-symbols-sharp"
-                                                style="font-size: 14px; color: var(--color-accent-blue); cursor: pointer;"
+                                                style="font-size: 16px; color: #4CAF50; cursor: pointer;"
                                                 (click)="playRecordingOnChannel(channel.key); $event.stopPropagation()">
                                                 play_circle
                                             </span>
                                         </div>
-                                        }
                                         <!-- Volume Icon -->
                                         <span class="material-symbols-sharp">volume_up</span>
                                         <!-- Cell Info -->
