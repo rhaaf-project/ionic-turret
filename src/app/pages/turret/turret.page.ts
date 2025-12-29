@@ -62,7 +62,7 @@ export interface Tab {
     isClosable: boolean;
     panelType: 'dashboard' | 'fav' | 'whatsapp' | 'teams' | 'audiorec' | 'grouptalk' | 'audio';
     isEditMode?: boolean;  // For FAV tabs view/edit toggle
-    items?: (DashboardIcon | null)[];  // 24-slot grid per tab (only for dashboard/fav)
+    items: (DashboardIcon | null)[];  // 24-slot grid per tab (empty array for panel tabs)
 }
 
 export interface DashboardIcon {
@@ -1105,8 +1105,8 @@ export class TurretPage implements OnInit, OnDestroy {
                     id: `${panelConfig.type}-${Date.now()}`,
                     title: panelConfig.title,
                     isClosable: true,
-                    panelType: panelConfig.type
-                    // No items array for panel tabs
+                    panelType: panelConfig.type,
+                    items: []  // Empty items for panel tabs (not FAV/dashboard)
                 };
                 this.tabs.push(newTab);
                 this.activeTabId = newTab.id;
