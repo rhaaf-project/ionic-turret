@@ -3,8 +3,10 @@ import { Component, OnInit, OnDestroy, CUSTOM_ELEMENTS_SCHEMA, ChangeDetectorRef
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
+import { HttpClientModule } from '@angular/common/http';
 import { SipService } from '../../services/sip.service';
 import { AudioService } from '../../services/audio.service';
+import { LaravelAuthService } from '../../services/laravel-auth.service';
 
 declare var bootstrap: any; // Bootstrap JS
 
@@ -78,7 +80,7 @@ export interface DashboardIcon {
 @Component({
     selector: 'app-turret',
     standalone: true,
-    imports: [CommonModule, IonicModule, FormsModule],
+    imports: [CommonModule, IonicModule, FormsModule, HttpClientModule],
     schemas: [CUSTOM_ELEMENTS_SCHEMA],
     templateUrl: './turret.page.html',
     styleUrls: ['./turret.page.scss']
@@ -437,7 +439,8 @@ export class TurretPage implements OnInit, OnDestroy {
     constructor(
         private sipService: SipService,
         public audioService: AudioService,
-        private cdr: ChangeDetectorRef
+        private cdr: ChangeDetectorRef,
+        private laravelAuth: LaravelAuthService
     ) { }
 
     ngOnInit(): void {
@@ -2457,57 +2460,66 @@ export class TurretPage implements OnInit, OnDestroy {
     // LOGIN METHODS
     // ============================================
     processLogin(): void {
-        this.loginStatus = 'Connecting to PBX...';
+        this.loginStatus = 'Authenticating...';
         this.loginStatusColor = '#ffcc00';
         this.hideKeyboard();
 
-        // Map username to SIP extension
-        const extensionMap: { [key: string]: string } = {
-            'admin': '6000',
-            'demo': '6000',
-            'demo1': '6001',
-            'demo2': '6002',
-            'demo3': '6003',
-            'demo4': '6004',
-            'test': '6005'
-        };
-        const extension = extensionMap[this.loginUsername.toLowerCase()] || '6000';
-        this.currentExtension = extension;
-        console.log(`📞 Login as ${this.loginUsername} → Extension ${extension}`);
+        // Use Laravel API for authentication
+        this.laravelAuth.login(this.loginUsername, this.loginPassword).subscribe({
+            next: (result) => {
+                if (result.success && result.extension) {
+                    this.loginStatus = 'Connecting to PBX...';
+                    console.log(`📞 Login as ${this.loginUsername} → Extension ${result.extension.extension}`);
 
-        // Register SIP extension
-        this.sipService.registerExtension({
-            server: '103.154.80.172',
-            port: 8089,
-            extension: extension,
-            password: 'Maja1234'
-        });
+                    // Store extension info
+                    this.currentExtension = result.extension.extension;
 
-        // Wait for registration then enter dashboard
-        const sub = this.sipService.registrationStatus$.subscribe(status => {
-            if (status === 'registered') {
-                this.loginStatus = 'Connected!';
-                this.loginStatusColor = '#00ff66';
-                setTimeout(() => {
-                    this.showLogin = false;
-                    console.log('✅ SIP Registered, entered dashboard');
-                }, 500);
-                sub.unsubscribe();
-            } else if (status === 'failed') {
-                this.loginStatus = 'Connection Failed';
+                    // Register SIP with API-provided credentials
+                    this.sipService.registerExtension({
+                        server: result.extension.sip_server || '103.154.80.172',
+                        port: 8089,
+                        extension: result.extension.extension,
+                        password: result.extension.secret || 'Maja1234'
+                    });
+
+                    // Wait for SIP registration
+                    const sub = this.sipService.registrationStatus$.subscribe(status => {
+                        if (status === 'registered') {
+                            this.loginStatus = 'Connected!';
+                            this.loginStatusColor = '#00ff66';
+                            setTimeout(() => {
+                                this.showLogin = false;
+                                console.log('✅ SIP Registered, entered dashboard');
+                            }, 500);
+                            sub.unsubscribe();
+                        } else if (status === 'failed') {
+                            this.loginStatus = 'SIP Connection Failed';
+                            this.loginStatusColor = '#ff4d4d';
+                            sub.unsubscribe();
+                        }
+                    });
+
+                    // Timeout fallback - enter anyway after 5s
+                    setTimeout(() => {
+                        if (this.showLogin) {
+                            this.loginStatus = 'Entering (Offline Mode)...';
+                            this.showLogin = false;
+                            console.log('⚠️ SIP Registration timeout, entering offline mode');
+                        }
+                    }, 5000);
+                } else {
+                    // Login failed
+                    this.loginStatus = result.error || 'Login Failed';
+                    this.loginStatusColor = '#ff4d4d';
+                    console.error('❌ Login failed:', result.error);
+                }
+            },
+            error: (err) => {
+                this.loginStatus = 'Authentication Error';
                 this.loginStatusColor = '#ff4d4d';
-                sub.unsubscribe();
+                console.error('❌ Auth error:', err);
             }
         });
-
-        // Timeout fallback - enter anyway after 5s
-        setTimeout(() => {
-            if (this.showLogin) {
-                this.loginStatus = 'Entering (Offline Mode)...';
-                this.showLogin = false;
-                console.log('⚠️ SIP Registration timeout, entering offline mode');
-            }
-        }, 5000);
     }
 
     // === AUDIO VOLUME CONTROL ===
