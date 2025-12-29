@@ -200,6 +200,7 @@ export class TurretPage implements OnInit, OnDestroy {
             items: this.createDefaultDashboardItems()
         }];
         this.activeTabId = 'dashboard';
+        console.log('📑 Tabs initialized:', this.tabs.length, 'tabs, activeTabId:', this.activeTabId);
     }
 
     private createDefaultDashboardItems(): (DashboardIcon | null)[] {
