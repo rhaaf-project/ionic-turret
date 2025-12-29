@@ -118,7 +118,8 @@
                                             style="position: absolute; top: 5px; left: 20px; z-index: 100; display: flex; align-items: center; gap: 3px;">
                                             <span class="material-symbols-sharp channel-audio-indicator"
                                                 [style.opacity]="channel.recordingId ? '1' : '0'"
-                                                style="font-size: 16px; color: #4CAF50; cursor: pointer; transition: opacity 0.2s; background: rgba(0,0,0,0.5); border-radius: 3px; padding: 2px;"
+                                                [style.color]="channel.recordingColor || '#4CAF50'"
+                                                style="font-size: 16px; cursor: pointer; transition: opacity 0.2s, color 0.2s; background: rgba(0,0,0,0.5); border-radius: 3px; padding: 2px;"
                                                 (click)="playRecordingOnChannel(channel.key); $event.stopPropagation()">
                                                 play_arrow
                                             </span>
@@ -379,16 +380,23 @@
                             <div class="audiorec-grid"
                                 style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
                                 @for (channel of getChannelsWithRecordings(); track channel.key) {
-                                <div class="audiorec-card p-3"
-                                    style="background: #1a1a1a; border-radius: 8px; border: 1px solid #333;">
+                                <div class="audiorec-card p-3" [style.borderColor]="channel.recordingColor || '#333'"
+                                    style="background: #1a1a1a; border-radius: 8px; border-left: 4px solid;">
                                     <div class="d-flex flex-column">
-                                        <span class="fw-bold mb-2" style="color: #00bcd4;">CH {{ channel.position
-                                            }}</span>
-                                        <span class="mb-2" style="font-size: 12px; color: #888;">{{
+                                        <div class="d-flex align-items-center mb-2">
+                                            <span class="material-symbols-sharp"
+                                                [style.color]="channel.recordingColor || '#4CAF50'"
+                                                style="font-size: 20px; margin-right: 8px;">play_arrow</span>
+                                            <span class="fw-bold" [style.color]="channel.recordingColor || '#00bcd4'">CH
+                                                {{ channel.position }}</span>
+                                        </div>
+                                        <span class="mb-2" style="font-size: 12px; color: #aaa;">{{
                                             getRecordingById(channel.recordingId!)?.name }}</span>
                                         <div class="d-flex gap-2">
-                                            <button class="btn btn-sm btn-success flex-grow-1"
-                                                (click)="playRecordingOnChannel(channel.key)">
+                                            <button class="btn btn-sm flex-grow-1"
+                                                [style.backgroundColor]="channel.recordingColor || '#4CAF50'"
+                                                [style.borderColor]="channel.recordingColor || '#4CAF50'"
+                                                style="color: white;" (click)="playRecordingOnChannel(channel.key)">
                                                 <span class="material-symbols-sharp"
                                                     style="font-size: 16px;">play_arrow</span> Play
                                             </button>

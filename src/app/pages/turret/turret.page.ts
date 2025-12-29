@@ -22,6 +22,7 @@ export interface Channel {
     volumeOut: number;
     groups: string[];
     recordingId?: string;   // Assigned recording ID
+    recordingColor?: string; // Color for audio indicator (#ff6b6b, #4ecdc4, #45b7d1)
 }
 
 export interface Group {
@@ -159,6 +160,10 @@ export class TurretPage implements OnInit, OnDestroy {
     pendingDeleteRecording: Recording | null = null;
     playingRecordingId: string | null = null;
     currentAudio: HTMLAudioElement | null = null;
+
+    // SmartX Audio Colors (cycling)
+    readonly AUDIO_COLORS = ['#ff6b6b', '#4ecdc4', '#45b7d1'];
+    audioColorIndex = 0;
 
     // Current SIP Extension
     currentExtension = '';
@@ -2605,8 +2610,12 @@ export class TurretPage implements OnInit, OnDestroy {
     assignRecordingToChannel(channelKey: string, recordingId: string): void {
         const channelIndex = this.channels.findIndex(c => c.key === channelKey);
         if (channelIndex !== -1) {
-            // Create new channel object with recordingId
-            const updatedChannel = { ...this.channels[channelIndex], recordingId };
+            // Get next color from cycling array
+            const recordingColor = this.AUDIO_COLORS[this.audioColorIndex % this.AUDIO_COLORS.length];
+            this.audioColorIndex++;
+
+            // Create new channel object with recordingId and color
+            const updatedChannel = { ...this.channels[channelIndex], recordingId, recordingColor };
             // Create new array with updated channel
             this.channels = [
                 ...this.channels.slice(0, channelIndex),
@@ -2615,7 +2624,20 @@ export class TurretPage implements OnInit, OnDestroy {
             ];
             // Force change detection
             this.cdr.detectChanges();
-            console.log(`📎 Assigned recording ${recordingId} to ${channelKey}, channel has recordingId:`, updatedChannel.recordingId);
+
+            // Close the Audio Recording drawer
+            const drawer = document.getElementById('audioRecordingDrawer');
+            if (drawer) {
+                const offcanvasInstance = bootstrap.Offcanvas.getInstance(drawer);
+                if (offcanvasInstance) {
+                    offcanvasInstance.hide();
+                }
+            }
+
+            // Auto-switch to audiorec dashboard tab
+            this.openPanel('recordings');
+
+            console.log(`📎 Assigned recording ${recordingId} to ${channelKey} with color ${recordingColor}`);
         }
     }
 
