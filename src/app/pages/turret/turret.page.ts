@@ -1,4 +1,4 @@
-// TurretPage - SmartX UI Port to Angular/Ionic 
+// TurretPage - SmartX UI Port to Angular/Ionic - rebuild
 import { Component, OnInit, OnDestroy, CUSTOM_ELEMENTS_SCHEMA, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -168,6 +168,11 @@ export class TurretPage implements OnInit, OnDestroy {
     // SmartX Audio Colors (cycling)
     readonly AUDIO_COLORS = ['#ff6b6b', '#4ecdc4', '#45b7d1'];
     audioColorIndex = 0;
+
+    // Loop Playback State
+    isPlayingLoop = false;
+    loopAudioQueue: string[] = [];
+    loopCurrentIndex = 0;
 
     // Current SIP Extension
     currentExtension = '';
@@ -2727,6 +2732,85 @@ export class TurretPage implements OnInit, OnDestroy {
             }
         }
         return channelNames.length > 0 ? channelNames.join(', ') : '';
+    }
+
+    // Get all unique recordings that are assigned to any channel
+    getActiveRecordings(): Recording[] {
+        const recordingIds = new Set<string>();
+        for (const channel of this.channels) {
+            channel.channelRecordings?.forEach(r => recordingIds.add(r.id));
+        }
+        return this.recordings.filter(r => recordingIds.has(r.id));
+    }
+
+    // Get color for a specific recording ID
+    getRecordingColor(recordingId: string): string {
+        for (const channel of this.channels) {
+            const rec = channel.channelRecordings?.find(r => r.id === recordingId);
+            if (rec) return rec.color;
+        }
+        return '#4CAF50'; // default green
+    }
+
+    // Check if a channel has a specific recording
+    hasRecording(channel: Channel, recordingId: string): boolean {
+        return channel.channelRecordings?.some(r => r.id === recordingId) || false;
+    }
+
+    // Start looping playback of all active recordings
+    startPlayLoop(): void {
+        const activeRecs = this.getActiveRecordings();
+        if (activeRecs.length === 0) return;
+
+        this.isPlayingLoop = true;
+        this.loopAudioQueue = activeRecs.map(r => r.id);
+        this.loopCurrentIndex = 0;
+        this.playNextInLoop();
+    }
+
+    // Play next recording in the loop
+    playNextInLoop(): void {
+        if (!this.isPlayingLoop || this.loopAudioQueue.length === 0) return;
+
+        const recordingId = this.loopAudioQueue[this.loopCurrentIndex];
+        const recording = this.getRecordingById(recordingId);
+        if (!recording || !recording.filePath) {
+            this.loopCurrentIndex = (this.loopCurrentIndex + 1) % this.loopAudioQueue.length;
+            this.playNextInLoop();
+            return;
+        }
+
+        // Stop any currently playing audio
+        if (this.currentAudio) {
+            this.currentAudio.pause();
+        }
+
+        this.currentAudio = new Audio(recording.filePath);
+        this.playingRecordingId = recordingId;
+
+        // When audio ends, play next in loop
+        this.currentAudio.onended = () => {
+            if (this.isPlayingLoop) {
+                this.loopCurrentIndex = (this.loopCurrentIndex + 1) % this.loopAudioQueue.length;
+                this.playNextInLoop();
+            }
+        };
+
+        this.currentAudio.play();
+        console.log(`▶️ Loop playing: ${recording.name} (${this.loopCurrentIndex + 1}/${this.loopAudioQueue.length})`);
+    }
+
+    // Stop looping playback
+    stopPlayLoop(): void {
+        this.isPlayingLoop = false;
+        if (this.currentAudio) {
+            this.currentAudio.pause();
+            this.currentAudio = null;
+        }
+        this.playingRecordingId = null;
+        this.loopAudioQueue = [];
+        this.loopCurrentIndex = 0;
+        console.log('⏹️ Loop stopped');
     }
 
     // === SmartX-style Recording Panel Methods ===
