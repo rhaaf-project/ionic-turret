@@ -113,13 +113,14 @@
                                         <div class="ladder-bar right">
                                             <div class="ladder-fill"></div>
                                         </div>
-                                        <!-- Audio Recording Indicator (when recording assigned) -->
-                                        <div class="channel-audio-indicator" *ngIf="channel.recordingId"
-                                            style="position: absolute; top: 5px; left: 20px; z-index: 100; display: flex; align-items: center; gap: 3px; background: rgba(0,0,0,0.7); padding: 2px 4px; border-radius: 4px;">
-                                            <span class="material-symbols-sharp"
-                                                style="font-size: 16px; color: #4CAF50; cursor: pointer;"
+                                        <!-- Audio Recording Indicator (SmartX style: always rendered, opacity controlled) -->
+                                        <div class="channel-audio-indicators"
+                                            style="position: absolute; top: 5px; left: 20px; z-index: 100; display: flex; align-items: center; gap: 3px;">
+                                            <span class="material-symbols-sharp channel-audio-indicator"
+                                                [style.opacity]="channel.recordingId ? '1' : '0'"
+                                                style="font-size: 16px; color: #4CAF50; cursor: pointer; transition: opacity 0.2s; background: rgba(0,0,0,0.5); border-radius: 3px; padding: 2px;"
                                                 (click)="playRecordingOnChannel(channel.key); $event.stopPropagation()">
-                                                play_circle
+                                                play_arrow
                                             </span>
                                         </div>
                                         <!-- Volume Icon -->
