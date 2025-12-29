@@ -2602,11 +2602,17 @@ export class TurretPage implements OnInit, OnDestroy {
     }
 
     assignRecordingToChannel(channelKey: string, recordingId: string): void {
-        const channel = this.channels.find(c => c.key === channelKey);
-        if (channel) {
-            channel.recordingId = recordingId;
-            this.channels = [...this.channels];
-            console.log(`📎 Assigned recording ${recordingId} to ${channelKey}`);
+        const channelIndex = this.channels.findIndex(c => c.key === channelKey);
+        if (channelIndex !== -1) {
+            // Create new channel object with recordingId
+            const updatedChannel = { ...this.channels[channelIndex], recordingId };
+            // Create new array with updated channel
+            this.channels = [
+                ...this.channels.slice(0, channelIndex),
+                updatedChannel,
+                ...this.channels.slice(channelIndex + 1)
+            ];
+            console.log(`📎 Assigned recording ${recordingId} to ${channelKey}, channel has recordingId:`, updatedChannel.recordingId);
         }
     }
 
