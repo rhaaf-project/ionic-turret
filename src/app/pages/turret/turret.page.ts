@@ -2742,13 +2742,22 @@ export class TurretPage implements OnInit, OnDestroy {
         return channelNames.length > 0 ? channelNames.join(', ') : '';
     }
 
-    // Get all unique recordings that are assigned to any channel
+    // Get all unique recordings that are assigned to any channel, sorted by color order (red, yellow, blue)
     getActiveRecordings(): Recording[] {
         const recordingIds = new Set<string>();
         for (const channel of this.channels) {
             channel.channelRecordings?.forEach(r => recordingIds.add(r.id));
         }
-        return this.recordings.filter(r => recordingIds.has(r.id));
+        const activeRecs = this.recordings.filter(r => recordingIds.has(r.id));
+
+        // Sort by color order: red → yellow → blue
+        return activeRecs.sort((a, b) => {
+            const colorA = this.getRecordingColor(a.id);
+            const colorB = this.getRecordingColor(b.id);
+            const orderA = this.AUDIO_COLORS.indexOf(colorA);
+            const orderB = this.AUDIO_COLORS.indexOf(colorB);
+            return (orderA === -1 ? 999 : orderA) - (orderB === -1 ? 999 : orderB);
+        });
     }
 
     // Get color for a specific recording ID (grey if not assigned)
@@ -2898,7 +2907,7 @@ export class TurretPage implements OnInit, OnDestroy {
             if (input) {
                 input.focus();
                 input.select();  // Auto-select all text for easy rename
-                this.showVirtualKeyboard();
+                this.showKeyboard(input);  // [FIX] Use showKeyboard to set vkInput properly
             }
         }, 100);
         console.log('✏️ Editing recording:', rec.name);
