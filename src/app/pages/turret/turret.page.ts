@@ -60,8 +60,9 @@ export interface Tab {
     id: string;
     title: string;
     isClosable: boolean;
+    panelType: 'dashboard' | 'fav' | 'whatsapp' | 'teams' | 'audiorec' | 'grouptalk' | 'audio';
     isEditMode?: boolean;  // For FAV tabs view/edit toggle
-    items: (DashboardIcon | null)[];  // 24-slot grid per tab
+    items?: (DashboardIcon | null)[];  // 24-slot grid per tab (only for dashboard/fav)
 }
 
 export interface DashboardIcon {
@@ -197,6 +198,7 @@ export class TurretPage implements OnInit, OnDestroy {
             id: 'dashboard',
             title: 'DASHBOARD',
             isClosable: false,
+            panelType: 'dashboard',
             items: this.createDefaultDashboardItems()
         }];
         this.activeTabId = 'dashboard';
@@ -224,6 +226,7 @@ export class TurretPage implements OnInit, OnDestroy {
             id: newTabId,
             title: `FAV ${this.tabs.length}`,
             isClosable: true,
+            panelType: 'fav',
             isEditMode: true,  // Start in edit mode like SmartX
             items: new Array(24).fill(null)
         };
@@ -1075,19 +1078,40 @@ export class TurretPage implements OnInit, OnDestroy {
 
     // === DASHBOARD ===
     openPanel(panel: string): void {
-        console.log('Open tab:', panel, this.activeTabId);
+        console.log('📂 Open panel:', panel);
 
-        // Handle special panels that use tabs
-        if (panel === 'grouptalk') {
-            this.activeTabId = 'grouptalk';
-            return;
-        }
-        if (panel === 'audio') {
-            this.activeTabId = 'audio';
-            return;
-        }
-        if (panel === 'recordings') {
-            this.activeTabId = 'audiorec';
+        // Define panel type mapping
+        const panelTypeMap: Record<string, { type: Tab['panelType'], title: string }> = {
+            'grouptalk': { type: 'grouptalk', title: 'GROUP TALK' },
+            'audio': { type: 'audio', title: 'AUDIO SETTINGS' },
+            'recordings': { type: 'audiorec', title: 'AUDIO RECORDINGS' },
+            'whatsapp': { type: 'whatsapp', title: 'WHATSAPP' },
+            'teams': { type: 'teams', title: 'TEAMS' }
+        };
+
+        // Check if this is a known panel type
+        const panelConfig = panelTypeMap[panel];
+        if (panelConfig) {
+            // Check if tab already exists
+            let existingTab = this.tabs.find(t => t.panelType === panelConfig.type);
+
+            if (existingTab) {
+                // Switch to existing tab
+                this.activeTabId = existingTab.id;
+                console.log('🔄 Switched to existing tab:', existingTab.title);
+            } else {
+                // Create new tab (like addNewTab pattern)
+                const newTab: Tab = {
+                    id: `${panelConfig.type}-${Date.now()}`,
+                    title: panelConfig.title,
+                    isClosable: true,
+                    panelType: panelConfig.type
+                    // No items array for panel tabs
+                };
+                this.tabs.push(newTab);
+                this.activeTabId = newTab.id;
+                console.log('🆕 Created new panel tab:', newTab.title);
+            }
             return;
         }
 
@@ -1112,6 +1136,7 @@ export class TurretPage implements OnInit, OnDestroy {
                         id: tabId,
                         title: favData.title || 'Favourite',
                         isClosable: true,
+                        panelType: 'fav',
                         isEditMode: false,
                         items: favData.items || new Array(24).fill(null)
                     };
