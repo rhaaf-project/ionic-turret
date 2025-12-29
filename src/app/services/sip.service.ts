@@ -77,6 +77,29 @@ export class SipService {
             this.registrationStatus.next('failed');
         });
 
+        // Handle WebSocket disconnect - auto reconnect
+        this.ua.on('disconnected', () => {
+            console.warn('[SIP] ⚠️ WebSocket disconnected - will try to reconnect');
+            this.registrationStatus.next('unregistered');
+
+            // Auto-reconnect after 3 seconds
+            setTimeout(() => {
+                if (this.ua && this.registrationStatus.getValue() !== 'registered') {
+                    console.log('[SIP] 🔄 Attempting auto-reconnect...');
+                    this.ua.start();
+                }
+            }, 3000);
+        });
+
+        // Handle connection errors
+        this.ua.on('connecting', () => {
+            console.log('[SIP] 🔌 Connecting to WebSocket...');
+        });
+
+        this.ua.on('connected', () => {
+            console.log('[SIP] ✅ WebSocket connected');
+        });
+
         this.ua.on('newRTCSession', (data: any) => {
             this.handleNewSession(data);
         });
