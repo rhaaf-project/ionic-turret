@@ -347,25 +347,30 @@
                             <div class="audio-grid"
                                 style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px;">
                                 @for (channel of channels; track channel.key) {
-                                <div class="audio-cell p-2"
-                                    style="background: #1a1a1a; border-radius: 6px; border: 1px solid #333; cursor: ns-resize;"
-                                    (touchstart)="onVolumeTouchStart($event, channel)"
-                                    (touchmove)="onVolumeTouchMove($event, channel)"
-                                    (touchend)="onVolumeTouchEnd($event, channel)"
-                                    (mousedown)="onVolumeMouseDown($event, channel)">
+                                <div class="audio-cell p-2" [style.background]="channel.isActive ? '#1a1a1a' : '#111'"
+                                    [style.opacity]="channel.isActive ? '1' : '0.5'"
+                                    [style.cursor]="channel.isActive ? 'ns-resize' : 'not-allowed'"
+                                    style="border-radius: 6px; border: 1px solid #333;"
+                                    (touchstart)="channel.isActive && onVolumeTouchStart($event, channel)"
+                                    (touchmove)="channel.isActive && onVolumeTouchMove($event, channel)"
+                                    (touchend)="channel.isActive && onVolumeTouchEnd($event, channel)"
+                                    (mousedown)="channel.isActive && onVolumeMouseDown($event, channel)">
                                     <div class="d-flex flex-column align-items-center">
-                                        <span style="font-size: 10px; color: #888; margin-bottom: 4px;">CH {{
-                                            channel.position }}</span>
+                                        <span [style.color]="channel.isActive ? '#fff' : '#555'"
+                                            style="font-size: 10px; margin-bottom: 4px;">CH {{ channel.position
+                                            }}</span>
                                         <!-- Volume Bar -->
                                         <div class="volume-bar-container"
                                             style="width: 30px; height: 50px; background: #333; border-radius: 3px; position: relative; overflow: hidden;">
                                             <div class="volume-bar-fill"
-                                                [style.height.%]="getChannelVolume(channel.key)"
-                                                style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, #00ff66, #66ff99); transition: height 0.1s;">
+                                                [style.height.%]="channel.isActive ? getChannelVolume(channel.key) : 0"
+                                                [style.background]="channel.isActive ? 'linear-gradient(to top, #00ff66, #66ff99)' : '#444'"
+                                                style="position: absolute; bottom: 0; left: 0; right: 0; transition: height 0.1s;">
                                             </div>
                                         </div>
-                                        <span style="font-size: 9px; color: #aaa; margin-top: 3px;">{{
-                                            getChannelVolume(channel.key) }}%</span>
+                                        <span [style.color]="channel.isActive ? '#aaa' : '#444'"
+                                            style="font-size: 9px; margin-top: 3px;">{{ channel.isActive ?
+                                            getChannelVolume(channel.key) + '%' : '--' }}</span>
                                     </div>
                                 </div>
                                 }
