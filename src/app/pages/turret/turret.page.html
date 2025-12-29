@@ -120,7 +120,7 @@
                                             <span class="material-symbols-sharp"
                                                 [style.opacity]="channel.channelRecordings?.[0] ? '1' : '0'"
                                                 [style.color]="channel.channelRecordings?.[0]?.color || '#888'"
-                                                style="font-size: 16px; cursor: pointer; background: rgba(0,0,0,0.8); border-radius: 3px; padding: 2px;"
+                                                style="font-size: 16px; cursor: pointer;"
                                                 (click)="playChannelRecordingAtIndex(channel, 0); $event.stopPropagation()">
                                                 play_arrow
                                             </span>
@@ -128,7 +128,7 @@
                                             <span class="material-symbols-sharp"
                                                 [style.opacity]="channel.channelRecordings?.[1] ? '1' : '0'"
                                                 [style.color]="channel.channelRecordings?.[1]?.color || '#888'"
-                                                style="font-size: 16px; cursor: pointer; background: rgba(0,0,0,0.8); border-radius: 3px; padding: 2px;"
+                                                style="font-size: 16px; cursor: pointer;"
                                                 (click)="playChannelRecordingAtIndex(channel, 1); $event.stopPropagation()">
                                                 play_arrow
                                             </span>
@@ -136,7 +136,7 @@
                                             <span class="material-symbols-sharp"
                                                 [style.opacity]="channel.channelRecordings?.[2] ? '1' : '0'"
                                                 [style.color]="channel.channelRecordings?.[2]?.color || '#888'"
-                                                style="font-size: 16px; cursor: pointer; background: rgba(0,0,0,0.8); border-radius: 3px; padding: 2px;"
+                                                style="font-size: 16px; cursor: pointer;"
                                                 (click)="playChannelRecordingAtIndex(channel, 2); $event.stopPropagation()">
                                                 play_arrow
                                             </span>
