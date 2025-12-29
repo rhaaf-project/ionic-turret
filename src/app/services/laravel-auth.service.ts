@@ -9,6 +9,7 @@ export interface LoginResponse {
         id: number;
         name: string;
         email: string;
+        use_ext: string;  // SIP extension assigned to user
     };
 }
 
@@ -28,6 +29,7 @@ export interface AuthResult {
     success: boolean;
     token?: string;
     extension?: Extension;
+    user?: LoginResponse['user'];
     error?: string;
 }
 
@@ -45,7 +47,7 @@ export class LaravelAuthService {
      * Login and get user's assigned extension
      * @param username - username or email
      * @param password - user password
-     * @returns AuthResult with token and extension data
+     * @returns AuthResult with token and user's extension (use_ext)
      */
     login(username: string, password: string): Observable<AuthResult> {
         const headers = new HttpHeaders({
@@ -57,34 +59,27 @@ export class LaravelAuthService {
             email: username.includes('@') ? username : `${username}@smartx.local`,
             password: password
         }, { headers }).pipe(
-            switchMap(response => {
+            map(response => {
                 // Store token
                 this.token = response.token;
                 localStorage.setItem('smartucx_auth_token', response.token);
-                console.log('[Auth] Login successful, token received');
+                console.log('[Auth] Login successful, user:', response.user.name, 'ext:', response.user.use_ext);
 
-                // Get extensions and find matching one
-                return this.getExtensions().pipe(
-                    map(extensions => {
-                        // Find extension matching user (e.g. admin gets 6000, demo1 gets 6001)
-                        // For now, match by name or return first extension
-                        let userExtension = extensions.find(e =>
-                            e.name?.toLowerCase() === username.toLowerCase() ||
-                            e.extension === username
-                        );
+                // Create extension object from user's use_ext
+                const userExtension: Extension = {
+                    id: response.user.id,
+                    extension: response.user.use_ext,
+                    name: response.user.name,
+                    secret: 'Maja1234',  // Default password, can be fetched from extensions table if needed
+                    sip_server: '103.154.80.172'
+                };
 
-                        // Fallback: return first active extension
-                        if (!userExtension) {
-                            userExtension = extensions.find(e => e.is_active !== false) || extensions[0];
-                        }
-
-                        return {
-                            success: true,
-                            token: this.token || undefined,
-                            extension: userExtension
-                        } as AuthResult;
-                    })
-                );
+                return {
+                    success: true,
+                    token: this.token || undefined,
+                    extension: userExtension,
+                    user: response.user
+                } as AuthResult;
             }),
             catchError(err => {
                 console.error('[Auth] Login failed:', err);
