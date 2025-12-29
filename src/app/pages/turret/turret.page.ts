@@ -166,7 +166,7 @@ export class TurretPage implements OnInit, OnDestroy {
     currentAudio: HTMLAudioElement | null = null;
 
     // SmartX Audio Colors (cycling)
-    readonly AUDIO_COLORS = ['#ff6b6b', '#4ecdc4', '#45b7d1'];
+    readonly AUDIO_COLORS = ['#ff6b6b', '#ffc107', '#45b7d1'];  // red, yellow, blue
     audioColorIndex = 0;
 
     // Loop Playback State
@@ -2706,6 +2706,14 @@ export class TurretPage implements OnInit, OnDestroy {
         channel.channelRecordings.forEach(rec => {
             this.playRecording(rec.id);
         });
+    }
+
+    // Safe click handler for channel indicator slots
+    playChannelRecordingAtIndex(channel: Channel, index: number): void {
+        const rec = channel.channelRecordings?.[index];
+        if (rec) {
+            this.playRecording(rec.id);
+        }
     }
 
     getChannelsWithRecordings(): Channel[] {

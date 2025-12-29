@@ -113,18 +113,33 @@
                                         <div class="ladder-bar right">
                                             <div class="ladder-fill"></div>
                                         </div>
-                                        <!-- Audio Recording Indicators (up to 3 per channel) -->
+                                        <!-- Audio Recording Indicators (SmartX: 3 pre-rendered slots) -->
                                         <div class="channel-audio-indicators"
                                             style="position: absolute; top: 3px; left: 15px; z-index: 200; display: flex; align-items: center; gap: 2px;">
-                                            <ng-container *ngFor="let rec of channel.channelRecordings || []">
-                                                <span class="material-symbols-sharp channel-audio-indicator"
-                                                    [style.color]="rec.color"
-                                                    style="font-size: 16px; cursor: pointer; background: rgba(0,0,0,0.8); border-radius: 3px; padding: 2px;"
-                                                    (click)="playRecording(rec.id); $event.stopPropagation()"
-                                                    [title]="getRecordingById(rec.id)?.name || 'Recording'">
-                                                    play_arrow
-                                                </span>
-                                            </ng-container>
+                                            <!-- Slot 1 -->
+                                            <span class="material-symbols-sharp"
+                                                [style.opacity]="channel.channelRecordings?.[0] ? '1' : '0'"
+                                                [style.color]="channel.channelRecordings?.[0]?.color || '#888'"
+                                                style="font-size: 16px; cursor: pointer; background: rgba(0,0,0,0.8); border-radius: 3px; padding: 2px;"
+                                                (click)="playChannelRecordingAtIndex(channel, 0); $event.stopPropagation()">
+                                                play_arrow
+                                            </span>
+                                            <!-- Slot 2 -->
+                                            <span class="material-symbols-sharp"
+                                                [style.opacity]="channel.channelRecordings?.[1] ? '1' : '0'"
+                                                [style.color]="channel.channelRecordings?.[1]?.color || '#888'"
+                                                style="font-size: 16px; cursor: pointer; background: rgba(0,0,0,0.8); border-radius: 3px; padding: 2px;"
+                                                (click)="playChannelRecordingAtIndex(channel, 1); $event.stopPropagation()">
+                                                play_arrow
+                                            </span>
+                                            <!-- Slot 3 -->
+                                            <span class="material-symbols-sharp"
+                                                [style.opacity]="channel.channelRecordings?.[2] ? '1' : '0'"
+                                                [style.color]="channel.channelRecordings?.[2]?.color || '#888'"
+                                                style="font-size: 16px; cursor: pointer; background: rgba(0,0,0,0.8); border-radius: 3px; padding: 2px;"
+                                                (click)="playChannelRecordingAtIndex(channel, 2); $event.stopPropagation()">
+                                                play_arrow
+                                            </span>
                                         </div>
                                         <!-- Volume Icon -->
                                         <span class="material-symbols-sharp">volume_up</span>
