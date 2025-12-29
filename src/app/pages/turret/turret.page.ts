@@ -2892,11 +2892,12 @@ export class TurretPage implements OnInit, OnDestroy {
     editRecordingName(rec: Recording): void {
         this.editingRecording = rec;
         this.currentRecordingName = rec.name;
-        // Focus the input and show VK after a tick
+        // Focus the input, select text, and show VK after a tick
         setTimeout(() => {
             const input = document.getElementById('editRecordingNameInput') as HTMLInputElement;
             if (input) {
                 input.focus();
+                input.select();  // Auto-select all text for easy rename
                 this.showVirtualKeyboard();
             }
         }, 100);
