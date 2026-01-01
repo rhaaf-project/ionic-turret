@@ -41,6 +41,23 @@ export class SipService {
     constructor(private audioService: AudioService) {
         // Enable JsSIP debug in development
         JsSIP.debug.enable('JsSIP:*');
+
+        // Subscribe to output device changes to update active calls
+        this.audioService.selectedOutputDeviceId$.subscribe(deviceId => {
+            this.applyOutputDeviceToAllCalls(deviceId);
+        });
+    }
+
+    /**
+     * Apply output device to all active audio elements
+     */
+    private applyOutputDeviceToAllCalls(deviceId: string): void {
+        const remoteAudio = document.getElementById('remoteAudio') as HTMLAudioElement;
+        if (remoteAudio && (remoteAudio as any).setSinkId) {
+            (remoteAudio as any).setSinkId(deviceId)
+                .then(() => console.log('[SIP] Applied output device:', deviceId))
+                .catch((err: any) => console.warn('[SIP] setSinkId error:', err));
+        }
     }
 
     /**
@@ -56,9 +73,10 @@ export class SipService {
             sockets: [socket],
             uri: sipUri,
             password: config.password,
-            register: true,
-            session_timers: false
+            register: true
+            // Removed session_timers: false - match SmartX default
         };
+
 
         this.ua = new JsSIP.UA(uaConfig);
 
@@ -133,7 +151,7 @@ export class SipService {
                 console.log('[SIP] 🔇 Outgoing call: Mic auto-muted (PTT mode)');
             }
 
-            // SmartX pattern: EMPTY iceServers for instant call (no 40s delay!)
+            // Empty iceServers - let Asterisk handle media with rtp_symmetric
             const session = this.ua!.call(targetUri, {
                 mediaStream: stream,
                 pcConfig: { iceServers: [] }
@@ -147,10 +165,12 @@ export class SipService {
                     remoteAudio.srcObject = e.streams[0];
                     remoteAudio.play().catch(err => console.error('[SIP] Audio play error:', err));
 
-                    // Apply selected speaker
+                    // Apply selected speaker (always apply, even for 'default')
                     const outputDeviceId = this.audioService.getSelectedOutputDeviceId();
-                    if (outputDeviceId && outputDeviceId !== 'default' && (remoteAudio as any).setSinkId) {
-                        (remoteAudio as any).setSinkId(outputDeviceId).catch((err: any) => console.warn('[SIP] setSinkId error:', err));
+                    if ((remoteAudio as any).setSinkId) {
+                        (remoteAudio as any).setSinkId(outputDeviceId)
+                            .then(() => console.log('[SIP] Audio output set to:', outputDeviceId))
+                            .catch((err: any) => console.warn('[SIP] setSinkId error:', err));
                     }
                 }
             });
@@ -202,7 +222,7 @@ export class SipService {
                     console.log('[SIP] 🔇 Mic auto-muted (PTT mode)');
                 }
 
-                // Answer with mediaStream and empty iceServers (like SmartX)
+                // Empty iceServers - let Asterisk handle media
                 session.answer({
                     mediaStream: stream,
                     pcConfig: { iceServers: [] }
@@ -219,9 +239,12 @@ export class SipService {
                         // SmartX: Do NOT mute remote audio - user can always HEAR
                         // PTT only controls MIC (speaking), not hearing
 
+                        // Apply selected speaker (always apply, even for 'default')
                         const outputDeviceId = this.audioService.getSelectedOutputDeviceId();
-                        if (outputDeviceId && outputDeviceId !== 'default' && (remoteAudio as any).setSinkId) {
-                            (remoteAudio as any).setSinkId(outputDeviceId).catch((err: any) => console.warn('[SIP] setSinkId error:', err));
+                        if ((remoteAudio as any).setSinkId) {
+                            (remoteAudio as any).setSinkId(outputDeviceId)
+                                .then(() => console.log('[SIP] Audio output set to:', outputDeviceId))
+                                .catch((err: any) => console.warn('[SIP] setSinkId error:', err));
                         }
                     }
                 });

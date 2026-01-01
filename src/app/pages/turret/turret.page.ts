@@ -453,6 +453,50 @@ export class TurretPage implements OnInit, OnDestroy {
         this.setupPttListener();
         this.setupVkTouchListener();
         this.setupSipSubscriptions();  // [FIX] Subscribe to SIP events
+        this.setupAudioDeviceSubscriptions();  // [FIX] Subscribe to audio devices
+        this.setupAudioUnlock();  // [FIX] Unlock audio on first user interaction
+    }
+
+    // [FIX] Unlock audio autoplay on first user interaction
+    private audioUnlocked = false;
+    private setupAudioUnlock(): void {
+        const unlockAudio = () => {
+            if (this.audioUnlocked) return;
+            this.audioUnlocked = true;
+
+            // Resume AudioContext
+            this.audioService.resumeContext();
+
+            // Try to play remoteAudio element (will succeed after user gesture)
+            const remoteAudio = document.getElementById('remoteAudio') as HTMLAudioElement;
+            if (remoteAudio && remoteAudio.srcObject) {
+                remoteAudio.play().catch(() => { });
+            }
+
+            console.log('[Audio] 🔓 Audio unlocked by user interaction');
+
+            // Remove listeners after first unlock
+            document.removeEventListener('click', unlockAudio);
+            document.removeEventListener('touchstart', unlockAudio);
+            document.removeEventListener('keydown', unlockAudio);
+        };
+
+        document.addEventListener('click', unlockAudio);
+        document.addEventListener('touchstart', unlockAudio);
+        document.addEventListener('keydown', unlockAudio);
+    }
+
+    // [FIX] Subscribe to audio device changes
+    private setupAudioDeviceSubscriptions(): void {
+        this.audioService.inputDevices$.subscribe(devices => {
+            this.audioInputDevices = devices;
+            console.log('[Audio] Input devices updated:', devices.length);
+        });
+
+        this.audioService.outputDevices$.subscribe(devices => {
+            this.audioOutputDevices = devices;
+            console.log('[Audio] Output devices updated:', devices.length);
+        });
     }
 
     // [FIX] Subscribe to SIP service events for UI updates
@@ -493,6 +537,12 @@ export class TurretPage implements OnInit, OnDestroy {
                         console.log('📴 SIP Session ended:', channelKey);
                     }
                     this.activeChannelKeys.delete(channelKey);
+
+                    // Reset dialpad state when any call ends
+                    this.dialpadConnected = false;
+                    this.dialpadCallerName = '';
+                    this.activeIncomingSessionKey = null;
+                    this.activeIncomingNumber = null;
                 }
             });
 
@@ -1471,6 +1521,12 @@ export class TurretPage implements OnInit, OnDestroy {
     clearDialpad(): void {
         this.dialpadNumber = '';
         this.dialpadContactName = '';
+    }
+
+    deleteLastDigit(): void {
+        if (this.dialpadNumber.length > 0) {
+            this.dialpadNumber = this.dialpadNumber.slice(0, -1);
+        }
     }
 
     dialFromPad(): void {

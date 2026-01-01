@@ -57,28 +57,61 @@ export class AudioService {
 
             const devices = await navigator.mediaDevices.enumerateDevices();
 
-            const inputs: AudioDevice[] = devices
-                .filter(d => d.kind === 'audioinput')
-                .map(d => ({
-                    deviceId: d.deviceId,
-                    label: d.label || `Microphone ${d.deviceId.slice(0, 8)}`,
-                    kind: 'audioinput' as const
-                }));
+            // Filter and clean up device list
+            // Remove duplicates like "Default - xxx" and "Communications - xxx"
+            const cleanDevices = (list: MediaDeviceInfo[], kind: 'audioinput' | 'audiooutput'): AudioDevice[] => {
+                return list
+                    .filter(d => d.kind === kind)
+                    // Skip "Default -" and "Communications -" prefixed duplicates
+                    .filter(d => !d.label.startsWith('Default - ') && !d.label.startsWith('Communications - '))
+                    .map(d => ({
+                        deviceId: d.deviceId,
+                        label: d.label || `${kind === 'audioinput' ? 'Microphone' : 'Speaker'} ${d.deviceId.slice(0, 8)}`,
+                        kind: kind
+                    }));
+            };
 
-            const outputs: AudioDevice[] = devices
-                .filter(d => d.kind === 'audiooutput')
-                .map(d => ({
-                    deviceId: d.deviceId,
-                    label: d.label || `Speaker ${d.deviceId.slice(0, 8)}`,
-                    kind: 'audiooutput' as const
-                }));
+            const inputs = cleanDevices(devices, 'audioinput');
+            const outputs = cleanDevices(devices, 'audiooutput');
 
             this.inputDevices.next(inputs);
             this.outputDevices.next(outputs);
 
             console.log('[Audio] Input devices:', inputs.length, 'Output devices:', outputs.length);
+
+            // Auto-select USB headset if detected (for both input and output)
+            this.autoSelectUsbHeadset(inputs, outputs);
         } catch (err) {
             console.error('[Audio] Failed to enumerate devices:', err);
+        }
+    }
+
+    /**
+     * Auto-select USB headset when connected
+     */
+    private autoSelectUsbHeadset(inputs: AudioDevice[], outputs: AudioDevice[]): void {
+        // Look for USB headset keywords in device names
+        const usbKeywords = ['usb', 'headset', 'headphone', 'lync', 'jabra', 'plantronics', 'logitech'];
+
+        // Find USB input device
+        const usbInput = inputs.find(d =>
+            usbKeywords.some(keyword => d.label.toLowerCase().includes(keyword))
+        );
+
+        // Find USB output device
+        const usbOutput = outputs.find(d =>
+            usbKeywords.some(keyword => d.label.toLowerCase().includes(keyword))
+        );
+
+        // Auto-select if found and currently on default
+        if (usbInput && this.selectedInputDeviceId.getValue() === 'default') {
+            this.setInputDevice(usbInput.deviceId);
+            console.log('[Audio] Auto-selected USB input:', usbInput.label);
+        }
+
+        if (usbOutput && this.selectedOutputDeviceId.getValue() === 'default') {
+            this.setOutputDevice(usbOutput.deviceId);
+            console.log('[Audio] Auto-selected USB output:', usbOutput.label);
         }
     }
 

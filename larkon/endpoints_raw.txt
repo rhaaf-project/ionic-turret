@@ -1,0 +1,321 @@
+
+ Endpoint:  <Endpoint/CID.....................................>  <State.....>  <Channels.>
+    I/OAuth:  <AuthId/UserName...........................................................>
+        Aor:  <Aor............................................>  <MaxContact>
+      Contact:  <Aor/ContactUri..........................> <Hash....> <Status> <RTT(ms)..>
+  Transport:  <TransportId........>  <Type>  <cos>  <tos>  <BindAddress..................>
+   Identify:  <Identify/Endpoint.........................................................>
+        Match:  <criteria.........................>
+    Channel:  <ChannelId......................................>  <State.....>  <Time.....>
+        Exten: <DialedExten...........>  CLCID: <ConnectedLineCID.......>
+==========================================================================================
+
+ Endpoint:  6000                                                 In use        51 of inf
+     InAuth:  6000/6000
+        Aor:  6000                                               5
+      Contact:  6000/sip:psu32b5h@110.138.86.51:58353;tran abcf3e6cac NonQual        -nan
+    Channel: PJSIP/6000-000000c7/Dial                            Up            27:21:43   
+        Exten: 6001                      CLCID: "" <6001>
+    Channel: PJSIP/6000-0000003d/AppDial                         Up            67:06:34   
+        Exten:                           CLCID: "" <6001>
+    Channel: PJSIP/6000-00000037/AppDial                         Up            67:25:48   
+        Exten:                           CLCID: "" <6001>
+    Channel: PJSIP/6000-000000cb/Dial                            Up            25:50:10   
+        Exten: 6001                      CLCID: "" <6001>
+    Channel: PJSIP/6000-000000b4/Dial                            Up            40:57:02   
+        Exten: 6001                      CLCID: "" <6001>
+    Channel: PJSIP/6000-000000d9/Dial                            Up            22:41:35   
+        Exten: 6001                      CLCID: "" <6001>
+    Channel: PJSIP/6000-000000d3/Dial                            Up            23:31:51   
+        Exten: 6001                      CLCID: "" <6001>
+    Channel: PJSIP/6000-00000073/Dial                            Up            62:24:35   
+        Exten: 6001                      CLCID: "" <6001>
+    Channel: PJSIP/6000-000000b1/Dial                            Up            41:05:09   
+        Exten: 6001                      CLCID: "" <6001>
+    Channel: PJSIP/6000-0000003a/Dial                            Up            67:07:54   
+        Exten: 6001                      CLCID: "" <6001>
+    Channel: PJSIP/6000-0000007d/Dial                            Up            61:19:15   
+        Exten: 6002                      CLCID: "" <6002>
+    Channel: PJSIP/6000-00000081/Dial                            Up            52:38:00   
+        Exten: 6001                      CLCID: "" <6001>
+    Channel: PJSIP/6000-00000079/Dial                            Up            61:36:50   
+        Exten: 6002                      CLCID: "" <6002>
+    Channel: PJSIP/6000-00000010/AppDial                         Up            73:32:54   
+        Exten:                           CLCID: "" <6001>
+    Channel: PJSIP/6000-0000004f/AppDial                         Up            65:07:36   
+        Exten:                           CLCID: "" <6001>
+    Channel: PJSIP/6000-000000ba/Dial                            Up            40:08:08   
+        Exten: 6001                      CLCID: "" <6001>
+    Channel: PJSIP/6000-00000088/Dial                            Up            51:35:48   
+        Exten: 6001                      CLCID: "" <6001>
+    Channel: PJSIP/6000-000000d1/Dial                            Up            24:31:43   
+        Exten: 6001                      CLCID: "" <6001>
+    Channel: PJSIP/6000-0000002f/AppDial                         Up            68:03:12   
+        Exten:                           CLCID: "" <6001>
+    Channel: PJSIP/6000-000000a7/Dial                            Up            47:01:44   
+        Exten: 6001                      CLCID: "" <6001>
+    Channel: PJSIP/6000-0000004b/AppDial                         Up            66:43:40   
+        Exten:                           CLCID: "" <6001>
+    Channel: PJSIP/6000-00000083/Dial                            Up            52:24:54   
+        Exten: 6001                      CLCID: "" <6001>
+    Channel: PJSIP/6000-000000d7/Dial                            Up            22:58:28   
+        Exten: 6001                      CLCID: "" <6001>
+    Channel: PJSIP/6000-00000055/AppDial                         Up            64:30:33   
+        Exten:                           CLCID: "" <6001>
+    Channel: PJSIP/6000-000000c9/Dial                            Up            27:12:53   
+        Exten: 6001                      CLCID: "" <6001>
+    Channel: PJSIP/6000-00000075/Dial                            Up            62:24:17   
+        Exten: 6002                      CLCID: "" <6002>
+    Channel: PJSIP/6000-000000ab/Dial                            Up            41:50:49   
+        Exten: 6001                      CLCID: "" <6001>
+    Channel: PJSIP/6000-00000077/Dial                            Up            61:37:06   
+        Exten: 6001                      CLCID: "" <6001>
+    Channel: PJSIP/6000-00000039/AppDial                         Up            67:22:30   
+        Exten:                           CLCID: "" <6001>
+    Channel: PJSIP/6000-000000a1/Dial                            Up            47:38:50   
+        Exten: 6001                      CLCID: "" <6001>
+    Channel: PJSIP/6000-000000cf/Dial                            Up            25:24:02   
+        Exten: 6001                      CLCID: "" <6001>
+    Channel: PJSIP/6000-0000004d/AppDial                         Up            66:18:53   
+        Exten:                           CLCID: "" <6001>
+    Channel: PJSIP/6000-00000059/AppDial                         Up            64:29:26   
+        Exten:                           CLCID: "" <6001>
+    Channel: PJSIP/6000-0000007b/Dial                            Up            61:19:26   
+        Exten: 6001                      CLCID: "" <6001>
+    Channel: PJSIP/6000-000000b8/Dial                            Up            40:10:07   
+        Exten: 6001                      CLCID: "" <6001>
+    Channel: PJSIP/6000-0000007f/Dial                            Up            52:50:19   
+        Exten: 6001                      CLCID: "" <6001>
+    Channel: PJSIP/6000-000000af/Dial                            Up            41:22:12   
+        Exten: 6001                      CLCID: "" <6001>
+    Channel: PJSIP/6000-000000ad/Dial                            Up            41:36:43   
+        Exten: 6001                      CLCID: "" <6001>
+    Channel: PJSIP/6000-00000015/AppDial                         Up            72:39:33   
+        Exten:                           CLCID: "" <6001>
+    Channel: PJSIP/6000-000000c1/Dial                            Up            37:07:43   
+        Exten: 6001                      CLCID: "" <6001>
+    Channel: PJSIP/6000-000000bc/Dial                            Up            40:02:21   
+        Exten: 6001                      CLCID: "" <6001>
+    Channel: PJSIP/6000-000000c5/Dial                            Up            28:39:57   
+        Exten: 6001                      CLCID: "" <6001>
+    Channel: PJSIP/6000-000000dd/Dial                            Up            19:14:04   
+        Exten: 6001                      CLCID: "" <6001>
+    Channel: PJSIP/6000-0000006b/Dial                            Up            62:39:33   
+        Exten: 6001                      CLCID: "" <6001>
+    Channel: PJSIP/6000-00000086/Dial                            Up            52:11:24   
+        Exten: 6001                      CLCID: "" <6001>
+    Channel: PJSIP/6000-000000cd/Dial                            Up            25:42:17   
+        Exten: 6001                      CLCID: "" <6001>
+    Channel: PJSIP/6000-000000c3/Dial                            Up            36:59:32   
+        Exten: 6001                      CLCID: "" <6001>
+    Channel: PJSIP/6000-000000d5/Dial                            Up            23:14:09   
+        Exten: 6001                      CLCID: "" <6001>
+    Channel: PJSIP/6000-000000be/Dial                            Up            39:46:58   
+        Exten: 6001                      CLCID: "" <6001>
+    Channel: PJSIP/6000-000000a5/Dial                            Up            47:20:31   
+        Exten: 6001                      CLCID: "" <6001>
+    Channel: PJSIP/6000-000000b6/Dial                            Up            40:50:22   
+        Exten: 6001                      CLCID: "" <6001>
+
+ Endpoint:  6001                                                 In use        48 of inf
+     InAuth:  6001/6001
+        Aor:  6001                                               5
+    Channel: PJSIP/6001-000000c8/AppDial                         Up            27:21:43   
+        Exten:                           CLCID: "" <6000>
+    Channel: PJSIP/6001-0000003c/Dial                            Up            67:06:34   
+        Exten: 6000                      CLCID: "" <6000>
+    Channel: PJSIP/6001-000000cc/AppDial                         Up            25:50:10   
+        Exten:                           CLCID: "" <6000>
+    Channel: PJSIP/6001-000000b5/AppDial                         Up            40:57:02   
+        Exten:                           CLCID: "" <6000>
+    Channel: PJSIP/6001-000000da/AppDial                         Up            22:41:35   
+        Exten:                           CLCID: "" <6000>
+    Channel: PJSIP/6001-000000d4/AppDial                         Up            23:31:51   
+        Exten:                           CLCID: "" <6000>
+    Channel: PJSIP/6001-000000b2/AppDial                         Up            41:05:09   
+        Exten:                           CLCID: "" <6000>
+    Channel: PJSIP/6001-00000038/Dial                            Up            67:22:30   
+        Exten: 6000                      CLCID: "" <6000>
+    Channel: PJSIP/6001-0000003b/AppDial                         Up            67:07:54   
+        Exten:                           CLCID: "" <6000>
+    Channel: PJSIP/6001-00000074/AppDial                         Up            62:24:35   
+        Exten:                           CLCID: "" <6000>
+    Channel: PJSIP/6001-0000004e/Dial                            Up            65:07:36   
+        Exten: 6000                      CLCID: "" <6000>
+    Channel: PJSIP/6001-000000a6/AppDial                         Up            47:20:31   
+        Exten:                           CLCID: "" <6000>
+    Channel: PJSIP/6001-00000082/AppDial                         Up            52:38:00   
+        Exten:                           CLCID: "" <6000>
+    Channel: PJSIP/6001-0000000f/Dial                            Up            73:32:54   
+        Exten: 6000                      CLCID: "" <6000>
+    Channel: PJSIP/6001-000000bb/AppDial                         Up            40:08:08   
+        Exten:                           CLCID: "" <6000>
+    Channel: PJSIP/6001-00000089/AppDial                         Up            51:35:48   
+        Exten:                           CLCID: "" <6000>
+    Channel: PJSIP/6001-000000d2/AppDial                         Up            24:31:43   
+        Exten:                           CLCID: "" <6000>
+    Channel: PJSIP/6001-0000002e/Dial                            Up            68:03:12   
+        Exten: 6000                      CLCID: "" <6000>
+    Channel: PJSIP/6001-00000080/AppDial                         Up            52:50:19   
+        Exten:                           CLCID: "" <6000>
+    Channel: PJSIP/6001-00000084/AppDial                         Up            52:24:54   
+        Exten:                           CLCID: "" <6000>
+    Channel: PJSIP/6001-000000a8/AppDial                         Up            47:01:44   
+        Exten:                           CLCID: "" <6000>
+    Channel: PJSIP/6001-0000004a/Dial                            Up            66:43:40   
+        Exten: 6000                      CLCID: "" <6000>
+    Channel: PJSIP/6001-000000d8/AppDial                         Up            22:58:28   
+        Exten:                           CLCID: "" <6000>
+    Channel: PJSIP/6001-00000054/Dial                            Up            64:30:33   
+        Exten: 6000                      CLCID: "" <6000>
+    Channel: PJSIP/6001-000000ca/AppDial                         Up            27:12:53   
+        Exten:                           CLCID: "" <6000>
+    Channel: PJSIP/6001-00000078/AppDial                         Up            61:37:06   
+        Exten:                           CLCID: "" <6000>
+    Channel: PJSIP/6001-000000ac/AppDial                         Up            41:50:49   
+        Exten:                           CLCID: "" <6000>
+    Channel: PJSIP/6001-000000a2/AppDial                         Up            47:38:50   
+        Exten:                           CLCID: "" <6000>
+    Channel: PJSIP/6001-000000d0/AppDial                         Up            25:24:02   
+        Exten:                           CLCID: "" <6000>
+    Channel: PJSIP/6001-0000004c/Dial                            Up            66:18:53   
+        Exten: 6000                      CLCID: "" <6000>
+    Channel: PJSIP/6001-00000058/Dial                            Up            64:29:26   
+        Exten: 6000                      CLCID: "" <6000>
+    Channel: PJSIP/6001-0000007c/AppDial                         Up            61:19:26   
+        Exten:                           CLCID: "" <6000>
+    Channel: PJSIP/6001-000000b0/AppDial                         Up            41:22:12   
+        Exten:                           CLCID: "" <6000>
+    Channel: PJSIP/6001-000000ae/AppDial                         Up            41:36:43   
+        Exten:                           CLCID: "" <6000>
+    Channel: PJSIP/6001-00000014/Dial                            Up            72:39:33   
+        Exten: 6000                      CLCID: "" <6000>
+    Channel: PJSIP/6001-000000c2/AppDial                         Up            37:07:43   
+        Exten:                           CLCID: "" <6000>
+    Channel: PJSIP/6001-000000b9/AppDial                         Up            40:10:07   
+        Exten:                           CLCID: "" <6000>
+    Channel: PJSIP/6001-0000006c/AppDial                         Up            62:39:33   
+        Exten:                           CLCID: "" <6000>
+    Channel: PJSIP/6001-000000c6/AppDial                         Up            28:39:57   
+        Exten:                           CLCID: "" <6000>
+    Channel: PJSIP/6001-000000de/AppDial                         Up            19:14:04   
+        Exten:                           CLCID: "" <6000>
+    Channel: PJSIP/6001-000000bd/AppDial                         Up            40:02:20   
+        Exten:                           CLCID: "" <6000>
+    Channel: PJSIP/6001-00000087/AppDial                         Up            52:11:24   
+        Exten:                           CLCID: "" <6000>
+    Channel: PJSIP/6001-000000ce/AppDial                         Up            25:42:17   
+        Exten:                           CLCID: "" <6000>
+    Channel: PJSIP/6001-000000c4/AppDial                         Up            36:59:32   
+        Exten:                           CLCID: "" <6000>
+    Channel: PJSIP/6001-000000d6/AppDial                         Up            23:14:09   
+        Exten:                           CLCID: "" <6000>
+    Channel: PJSIP/6001-000000bf/AppDial                         Up            39:46:58   
+        Exten:                           CLCID: "" <6000>
+    Channel: PJSIP/6001-000000b7/AppDial                         Up            40:50:22   
+        Exten:                           CLCID: "" <6000>
+    Channel: PJSIP/6001-00000036/Dial                            Up            67:25:48   
+        Exten: 6000                      CLCID: "" <6000>
+
+ Endpoint:  6002                                                 In use        3 of inf
+     InAuth:  6002/6002
+        Aor:  6002                                               5
+    Channel: PJSIP/6002-0000007e/AppDial                         Up            61:19:15   
+        Exten:                           CLCID: "" <6000>
+    Channel: PJSIP/6002-0000007a/AppDial                         Up            61:36:50   
+        Exten:                           CLCID: "" <6000>
+    Channel: PJSIP/6002-00000076/AppDial                         Up            62:24:17   
+        Exten:                           CLCID: "" <6000>
+
+ Endpoint:  6003                                                 Unavailable   0 of inf
+     InAuth:  6003/6003
+        Aor:  6003                                               5
+
+ Endpoint:  6004                                                 Unavailable   0 of inf
+     InAuth:  6004/6004
+        Aor:  6004                                               5
+
+ Endpoint:  6005                                                 Unavailable   0 of inf
+     InAuth:  6005/6005
+        Aor:  6005                                               5
+
+ Endpoint:  6006                                                 Unavailable   0 of inf
+     InAuth:  6006/6006
+        Aor:  6006                                               5
+
+ Endpoint:  6007                                                 Unavailable   0 of inf
+     InAuth:  6007/6007
+        Aor:  6007                                               5
+
+ Endpoint:  6008                                                 Unavailable   0 of inf
+     InAuth:  6008/6008
+        Aor:  6008                                               5
+
+ Endpoint:  6009                                                 Unavailable   0 of inf
+     InAuth:  6009/6009
+        Aor:  6009                                               5
+
+ Endpoint:  6010                                                 Unavailable   0 of inf
+     InAuth:  6010/6010
+        Aor:  6010                                               5
+
+ Endpoint:  6011                                                 Not in use    0 of inf
+     InAuth:  6011/6011
+        Aor:  6011                                               5
+      Contact:  6011/sip:6011@110.138.86.51:5061           23d8c8af87 NonQual        -nan
+
+ Endpoint:  6012                                                 Unavailable   0 of inf
+     InAuth:  6012/6012
+        Aor:  6012                                               5
+
+ Endpoint:  6013                                                 Unavailable   0 of inf
+     InAuth:  6013/6013
+        Aor:  6013                                               5
+
+ Endpoint:  6014                                                 Unavailable   0 of inf
+     InAuth:  6014/6014
+        Aor:  6014                                               5
+
+ Endpoint:  6015                                                 Unavailable   0 of inf
+     InAuth:  6015/6015
+        Aor:  6015                                               5
+
+ Endpoint:  6016                                                 Unavailable   0 of inf
+     InAuth:  6016/6016
+        Aor:  6016                                               5
+
+ Endpoint:  6017                                                 Unavailable   0 of inf
+     InAuth:  6017/6017
+        Aor:  6017                                               5
+
+ Endpoint:  6018                                                 Unavailable   0 of inf
+     InAuth:  6018/6018
+        Aor:  6018                                               5
+
+ Endpoint:  6019                                                 Unavailable   0 of inf
+     InAuth:  6019/6019
+        Aor:  6019                                               5
+
+ Endpoint:  6020                                                 Unavailable   0 of inf
+     InAuth:  6020/6020
+        Aor:  6020                                               5
+
+ Endpoint:  6021                                                 Unavailable   0 of inf
+     InAuth:  6021-iauth/6021
+        Aor:  6021                                               0
+
+ Endpoint:  6022                                                 Unavailable   0 of inf
+     InAuth:  6022-iauth/6022
+        Aor:  6022                                               0
+
+ Endpoint:  6023                                                 Unavailable   0 of inf
+     InAuth:  6023-iauth/6023
+        Aor:  6023                                               0
+
+ Endpoint:  9999                                                 Unavailable   0 of inf
+     InAuth:  9999-iauth/9999
+        Aor:  9999                                               0
+
+
+Objects found: 25
+

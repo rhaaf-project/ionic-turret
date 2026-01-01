@@ -1,47 +1,26 @@
 @echo off
-setlocal EnableExtensions EnableDelayedExpansion
+setlocal ENABLEEXTENSIONS
 
-REM ===============================
-REM ENV
-REM ===============================
-set CI=true
-set IONIC_TELEMETRY=0
+REM ==== FORCE SSH BINARY ====
+set SSH_BIN=C:\Windows\System32\OpenSSH\ssh.exe
 
-REM ===============================
-REM SSH CONFIG
-REM ===============================
-set SSH_USER=root
-set SSH_HOST=103.154.80.171
-set SSH_OPTS=-o StrictHostKeyChecking=no -o UserKnownHostsFile=NUL
+REM ==== FORCE NON-INTERACTIVE ====
+set SSH_OPTS=-o StrictHostKeyChecking=no -o UserKnownHostsFile=NUL -o BatchMode=yes -o PreferredAuthentications=publickey -o LogLevel=ERROR
 
-REM ===============================
-REM [1] BUILD IONIC
-REM ===============================
-echo [1/4] Building Ionic Project...
-powershell -Command "& {echo 'y' | npm run build -- --confirm 2>&1 | Select-Object -Last 5}"
+set USER=root
 
-REM ===============================
-REM [2] BUILD ELECTRON
-REM ===============================
-echo [2/4] Building Electron Assets...
-echo y | call npm run electron:build -- --confirm
+echo [INFO] SSH binary:
+"%SSH_BIN%" -V
 
-REM ===============================
-REM [3] CLEAN REMOTE ADMIN (SSH AUTO)
-REM ===============================
-echo [3/4] Cleaning remote admin directory...
-ssh %SSH_OPTS% %SSH_USER%@%SSH_HOST% ^
-"rm -rf /var/www/html/admin/*"
+echo [INFO] Test 171
+"%SSH_BIN%" %SSH_OPTS% %USER%@171 "echo OK-171" || goto :fail
 
-REM ===============================
-REM [4] UPLOAD BUILD (SCP AUTO)
-REM ===============================
-echo [4/4] Uploading files to server...
-scp -r %SSH_OPTS% ^
-dist/larkon/browser/* %SSH_USER%@%SSH_HOST%:/var/www/html/admin/
+echo [INFO] Test 172
+"%SSH_BIN%" %SSH_OPTS% %USER%@172 "echo OK-172" || goto :fail
 
-echo.
-echo =====================================
-echo DEPLOY FINISHED (NO SSH PROMPT)
-echo =====================================
-pause
+echo [SUCCESS] NO ACCEPT / NO PASSWORD
+exit /b 0
+
+:fail
+echo [FATAL] SSH STILL ASKING OR FAILED
+exit /b 1
