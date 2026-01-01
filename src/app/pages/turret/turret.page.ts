@@ -2578,6 +2578,43 @@ export class TurretPage implements OnInit, OnDestroy {
         });
     }
 
+    // === SIGN OUT ===
+    signOut(): void {
+        console.log('🚪 Signing out...');
+
+        // Close any open drawers
+        const offcanvases = document.querySelectorAll('.offcanvas.show');
+        offcanvases.forEach(el => {
+            const instance = bootstrap?.Offcanvas?.getInstance(el);
+            if (instance) instance.hide();
+        });
+
+        // Disconnect SIP
+        this.sipService.disconnect();
+
+        // Clear auth
+        this.authService.logout();
+
+        // Reset channels
+        this.channels.forEach(ch => {
+            ch.isActive = false;
+            ch.isCalling = false;
+            ch.name = '';
+            ch.extension = '';
+        });
+
+        // Reset login form
+        this.loginUsername = '';
+        this.loginPassword = '';
+        this.loginStatus = '';
+        this.currentExtension = '';
+
+        // Show login overlay
+        this.showLogin = true;
+
+        console.log('✅ Signed out successfully');
+    }
+
     // === AUDIO VOLUME CONTROL ===
     getChannelVolume(channelKey: string): number {
         return this.channelVolumes.get(channelKey) ?? 80; // Default 80%
