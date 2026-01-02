@@ -12,6 +12,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class TurretUserResource extends Resource
 {
@@ -41,14 +42,19 @@ class TurretUserResource extends Resource
                 Forms\Components\Section::make('User Information')
                     ->schema([
                         Forms\Components\TextInput::make('name')
-                            ->required()
-                            ->maxLength(255),
-                        Forms\Components\TextInput::make('email')
-                            ->email()
+                            ->label('Username')
                             ->required()
                             ->maxLength(255)
-                            ->unique(ignoreRecord: true),
-                    ])->columns(2),
+                            ->live(onBlur: true)
+                            ->afterStateUpdated(function ($state, Forms\Set $set, $operation) {
+                                if ($operation === 'create' && $state) {
+                                    // Auto-generate email from username
+                                    $email = Str::slug($state, '.') . '@smartx.local';
+                                    $set('email', $email);
+                                }
+                            }),
+                        Forms\Components\Hidden::make('email'),
+                    ]),
 
                 Forms\Components\Section::make('Password')
                     ->schema([
@@ -80,9 +86,7 @@ class TurretUserResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('name')
-                    ->searchable()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('email')
+                    ->label('Username')
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('use_ext')

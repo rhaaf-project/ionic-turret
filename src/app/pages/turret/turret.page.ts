@@ -1,5 +1,5 @@
 // TurretPage - SmartX UI Port to Angular/Ionic - rebuild
-import { Component, OnInit, OnDestroy, CUSTOM_ELEMENTS_SCHEMA, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, CUSTOM_ELEMENTS_SCHEMA, ChangeDetectorRef, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
@@ -1301,17 +1301,29 @@ export class TurretPage implements OnInit, OnDestroy {
         );
     }
 
-    scrollToLetter(letter: string): void {
+    scrollToLetter(letter: string, event?: Event): void {
+        if (event) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        console.log('🔤 Scroll to:', letter);
+
         // Find first contact starting with this letter
         const contact = this.filteredContacts.find(c =>
             c.name.toUpperCase().startsWith(letter)
         );
         if (contact) {
             const contactList = document.getElementById('contact-list-scroll');
-            const contactItems = contactList?.querySelectorAll('.contact-item');
-            const index = this.filteredContacts.indexOf(contact);
-            if (contactItems && contactItems[index]) {
-                contactItems[index].scrollIntoView({ behavior: 'smooth', block: 'start' });
+            if (contactList) {
+                const contactItems = contactList.querySelectorAll('.contact-card');
+                const index = this.filteredContacts.indexOf(contact);
+                if (contactItems && contactItems[index]) {
+                    // Use relative scrolling to avoid scrolling the whole page
+                    const item = contactItems[index] as HTMLElement;
+                    // Use relative scrolling to avoid scrolling the whole page
+                    const topPos = item.offsetTop - contactList.offsetTop;
+                    contactList.scrollTo({ top: topPos, behavior: 'smooth' });
+                }
             }
         }
     }
@@ -2410,10 +2422,27 @@ export class TurretPage implements OnInit, OnDestroy {
     // ============================================
     // VIRTUAL KEYBOARD METHODS
     // ============================================
-    showKeyboard(inputEl: HTMLInputElement): void {
+
+    @HostListener('document:click', ['$event'])
+    @HostListener('document:touchstart', ['$event'])
+    onDocumentClick(event: Event): void {
+        if (!this.vkActive) return;
+        const target = event.target as HTMLElement;
+
+        // Check if click is inside keyboard or on the input field itself
+        const isKeyboard = target.closest('.virtual-keyboard');
+        const isInput = target === this.vkInput;
+
+        if (!isKeyboard && !isInput) {
+            this.hideKeyboard();
+        }
+    }
+
+    showKeyboard(inputEl: HTMLInputElement): void { // Ensure method exists
         this.vkInput = inputEl;
         this.vkActive = true;
         this.vkSymbols = false;
+
         this.vkFirstKey = true;  // [FIX] Mark that next key should replace all
 
         // [FIX] Restore text selection after touch event (like SmartX)

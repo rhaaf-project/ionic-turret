@@ -14,3 +14,5 @@ bootstrapApplication(AppComponent, {
     provideHttpClient(),
   ],
 });
+
+// Rebuild Trigger: 01:31

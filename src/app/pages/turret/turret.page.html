@@ -36,7 +36,7 @@
         </div>
     </div>
 
-    <div class="login-version">v.01.02-23:45</div>
+    <div class="login-version">v.01.03-01:30 [GLOBAL FIX]</div>
 </div>
 
 <!-- PTT OVERLAY - Hidden per user request, using ladder bars instead -->
@@ -865,8 +865,9 @@
         <div class="phonebook-header">
             <div class="phonebook-controls">
                 <div class="phonebook-search">
-                    <input type="text" class="search-input" placeholder="search" [(ngModel)]="phoneSearchQuery"
-                        (keyup)="filterPhonebook()">
+                    <input #phoneSearchInput type="text" class="search-input" placeholder="search"
+                        [(ngModel)]="phoneSearchQuery" (ngModelChange)="filterPhonebook()"
+                        (focus)="showKeyboard(phoneSearchInput)" (click)="showKeyboard(phoneSearchInput)">
                     <span class="material-symbols-sharp" style="color: #fff;">search</span>
                 </div>
             </div>
@@ -874,7 +875,7 @@
         <div class="phonebook-body">
             <div class="alphabet-sidebar" id="alphaSidebar">
                 @for (letter of alphabet; track letter) {
-                <div class="alpha-letter" (click)="scrollToLetter(letter)">{{ letter }}</div>
+                <div class="alpha-letter" (click)="scrollToLetter(letter, $event)">{{ letter }}</div>
                 }
             </div>
             <div class="actual-contact-list" id="contact-list-scroll">

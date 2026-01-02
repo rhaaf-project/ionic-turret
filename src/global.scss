@@ -35,3 +35,39 @@
 /* @import "@ionic/angular/css/palettes/dark.always.css"; */
 /* @import "@ionic/angular/css/palettes/dark.class.css"; */
 @import '@ionic/angular/css/palettes/dark.system.css';
+
+// ============================================
+// TURRET PAGE FIXES (v.01.03)
+// ============================================
+
+/* Fix Login Status Alignment */
+.login-status {
+    text-align: center !important;
+    margin-top: 15px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    width: 100% !important;
+    display: block !important;
+}
+
+/* Fix Phonebook Layout */
+.phonebook-header {
+    display: flex !important;
+    width: 100% !important;
+    justify-content: flex-end !important;
+    align-items: center !important;
+    flex-shrink: 0;
+}
+
+.phonebook-controls {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    margin-left: auto !important;
+    gap: 10px;
+}
+
+.phonebook-search {
+    display: flex !important;
+    align-items: center !important;
+}
