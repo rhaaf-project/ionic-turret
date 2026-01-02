@@ -467,6 +467,50 @@
                             </div>
                         </div>
                         }
+                        <!-- ============= INFO PANEL VIEW ============= -->
+                        @if (isPanelActive('info')) {
+                        <div class="info-container p-4" style="color: white; height: 100%; overflow-y: auto;">
+                            <div class="fav-header mb-4">
+                                <div class="fav-view-header">
+                                    <div class="fav-title">
+                                        <span class="material-symbols-sharp" style="margin-right: 10px;">info</span>
+                                        <span>INFORMATION</span>
+                                    </div>
+                                    <div class="fav-actions">
+                                        <div class="fav-btn fav-btn-close" (click)="switchTab('dashboard')">
+                                            CLOSE
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="p-4" style="color:#aaa; max-width: 800px; margin: 0 auto;">
+                                <h3 style="color:white; margin-bottom:15px; display: flex; align-items: center;">
+                                    <span class="material-symbols-sharp"
+                                        style="margin-right:10px; color:var(--color-accent-green);">account_circle</span>
+                                    Account Information
+                                </h3>
+                                <div
+                                    style="background:#1a1a1a; padding:15px; border-radius:8px; border:1px solid #333; margin-bottom:30px;">
+                                    <p style="margin-bottom:8px;"><strong style="color:#fff;">Name:</strong> {{
+                                        loginUsername || 'Guest' }}</p>
+                                    <p style="margin-bottom:8px;"><strong style="color:#fff;">Username:</strong> {{
+                                        loginUsername || 'Unknown' }}</p>
+                                    <p style="margin-bottom:0;"><strong style="color:#fff;">Extension:</strong> {{
+                                        currentExtension || 'None' }}</p>
+                                </div>
+
+                                <h3 style="color:white; margin-bottom:15px; display: flex; align-items: center;">
+                                    <span class="material-symbols-sharp" style="margin-right:10px;">dvr</span>
+                                    System Information
+                                </h3>
+                                <hr style="border-color:#333;">
+                                <p><strong>System Version:</strong> v01.02-22:00 [f9a6171]</p>
+                                <p><strong>License ID:</strong> 884-221-990</p>
+                                <p><strong>Last Update:</strong> 02 Jan 2026</p>
+                            </div>
+                        </div>
+                        }
 
                         <!-- ============= FAVOURITE TAB VIEW ============= -->
                         @if (isPanelActive('fav') && activeTab) {

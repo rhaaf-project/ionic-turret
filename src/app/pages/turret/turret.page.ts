@@ -62,7 +62,7 @@ export interface Tab {
     id: string;
     title: string;
     isClosable: boolean;
-    panelType: 'dashboard' | 'fav' | 'whatsapp' | 'teams' | 'audiorec' | 'grouptalk' | 'audio';
+    panelType: 'dashboard' | 'fav' | 'whatsapp' | 'teams' | 'audiorec' | 'grouptalk' | 'audio' | 'info';
     isEditMode?: boolean;  // For FAV tabs view/edit toggle
     items: (DashboardIcon | null)[];  // 24-slot grid per tab (empty array for panel tabs)
 }
@@ -1131,6 +1131,8 @@ export class TurretPage implements OnInit, OnDestroy {
             this.activeTabId = 'grouptalk';
         } else if (type === 'audio') {
             this.activeTabId = 'audio';
+        } else if (type === 'info') {
+            this.openPanel('info');
         }
     }
 
@@ -1144,7 +1146,8 @@ export class TurretPage implements OnInit, OnDestroy {
             'audio': { type: 'audio', title: 'AUDIO SETTINGS' },
             'recordings': { type: 'audiorec', title: 'AUDIO RECORDINGS' },
             'whatsapp': { type: 'whatsapp', title: 'WHATSAPP' },
-            'teams': { type: 'teams', title: 'TEAMS' }
+            'teams': { type: 'teams', title: 'TEAMS' },
+            'info': { type: 'info', title: 'INFORMATION' }
         };
 
         // Check if this is a known panel type
