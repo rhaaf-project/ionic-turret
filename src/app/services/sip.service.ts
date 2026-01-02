@@ -127,21 +127,6 @@ export class SipService {
     }
 
     /**
-     * Disconnect SIP - clean shutdown
-     */
-    disconnect(): void {
-        if (this.ua) {
-            console.log('[SIP] Disconnecting...');
-            this.ua.stop();
-            this.ua = null;
-        }
-        // Clear all sessions
-        this.activeSessions.clear();
-        this.registrationStatus.next('unregistered');
-        console.log('[SIP] Disconnected');
-    }
-
-    /**
      * Make outgoing call - SmartX Pattern
      */
     makeCall(targetUri: string, channelKey: string): void {

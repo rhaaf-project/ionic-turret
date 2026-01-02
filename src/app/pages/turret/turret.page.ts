@@ -1280,10 +1280,6 @@ export class TurretPage implements OnInit, OnDestroy {
     }
 
 
-    signOut(): void {
-        console.log('Sign out');
-    }
-
     // === DRAWER: INTERCOM ===
     callIntercom(contact: { name: string; ext: string }): void {
         console.log('Call intercom:', contact.name);
@@ -2592,8 +2588,8 @@ export class TurretPage implements OnInit, OnDestroy {
         // Disconnect SIP
         this.sipService.disconnect();
 
-        // Clear auth
-        this.authService.logout();
+        // Clear auth token
+        this.laravelAuth.logout();
 
         // Reset channels
         this.channels.forEach(ch => {
@@ -2609,8 +2605,9 @@ export class TurretPage implements OnInit, OnDestroy {
         this.loginStatus = '';
         this.currentExtension = '';
 
-        // Show login overlay
+        // Show login overlay and force UI update
         this.showLogin = true;
+        this.cdr.detectChanges();
 
         console.log('✅ Signed out successfully');
     }
