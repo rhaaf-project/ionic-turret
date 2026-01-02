@@ -7,6 +7,7 @@ import { HttpClientModule } from '@angular/common/http';
 import { SipService } from '../../services/sip.service';
 import { AudioService } from '../../services/audio.service';
 import { LaravelAuthService } from '../../services/laravel-auth.service';
+import { VERSION } from '../../version';
 
 declare var bootstrap: any; // Bootstrap JS
 
@@ -88,6 +89,7 @@ export interface DashboardIcon {
 export class TurretPage implements OnInit, OnDestroy {
     // Header
     currentDate = '';
+    appVersion = VERSION.fullString;
     currentTime = '';
     pttTargetName = 'Unknown Channel';
 
@@ -1306,7 +1308,6 @@ export class TurretPage implements OnInit, OnDestroy {
             event.preventDefault();
             event.stopPropagation();
         }
-        console.log('🔤 Scroll to:', letter);
 
         // Find first contact starting with this letter
         const contact = this.filteredContacts.find(c =>
@@ -1320,7 +1321,6 @@ export class TurretPage implements OnInit, OnDestroy {
                 if (contactItems && contactItems[index]) {
                     // Use relative scrolling to avoid scrolling the whole page
                     const item = contactItems[index] as HTMLElement;
-                    // Use relative scrolling to avoid scrolling the whole page
                     const topPos = item.offsetTop - contactList.offsetTop;
                     contactList.scrollTo({ top: topPos, behavior: 'smooth' });
                 }
@@ -2438,7 +2438,7 @@ export class TurretPage implements OnInit, OnDestroy {
         }
     }
 
-    showKeyboard(inputEl: HTMLInputElement): void { // Ensure method exists
+    showKeyboard(inputEl: HTMLInputElement): void {
         this.vkInput = inputEl;
         this.vkActive = true;
         this.vkSymbols = false;
