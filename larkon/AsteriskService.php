@@ -9,15 +9,16 @@ class AsteriskService
     private string $pbxHost = '103.154.80.172';
 
     /**
-     * Execute SSH command on PBX host (NOT in docker yet)
+     * Execute SSH command on PBX host
+     * Uses sudo because Laravel runs as www-data
      */
     private function sshExec(string $command): string
     {
-        $sshCommand = "ssh -o StrictHostKeyChecking=no root@{$this->pbxHost} \"{$command}\"";
+        $sshCommand = "sudo ssh -o StrictHostKeyChecking=no -o BatchMode=yes root@{$this->pbxHost} \"{$command}\"";
         Log::info('[Asterisk] SSH: ' . $command);
 
         $output = shell_exec($sshCommand . ' 2>&1');
-        Log::info('[Asterisk] Output: ' . $output);
+        Log::info('[Asterisk] Output: ' . substr($output ?? '', 0, 500));
 
         return $output ?? '';
     }
@@ -36,61 +37,125 @@ class AsteriskService
     public function reloadPjsip(): bool
     {
         $result = $this->executeCommand("asterisk -rx 'pjsip reload'");
-        return str_contains($result, 'reloaded') || str_contains($result, 'Reload');
+        return str_contains($result, 'reloaded') || str_contains($result, 'Reload') || str_contains($result, 'Module');
     }
 
     /**
-     * Add extension to pjsip_wizard.conf
+     * Add extension to pjsip.conf using docker cp approach
+     * @param string $type 'webrtc' or 'softphone'
      */
-    public function addExtension(string $extension, string $secret, string $name = ''): bool
+    public function addExtension(string $extension, string $secret, string $name = '', string $type = 'webrtc'): bool
     {
-        $config = "[{$extension}]
-type = wizard
-accepts_registrations = yes
-sends_registrations = no
-accepts_auth = yes
-sends_auth = no
-endpoint/context = internal
-endpoint/allow = ulaw,alaw,opus
-endpoint/webrtc = yes
-endpoint/dtls_auto_generate_cert = yes
-endpoint/rtp_symmetric = yes
-endpoint/force_rport = yes
-endpoint/rewrite_contact = yes
-endpoint/direct_media = no
-inbound_auth/username = {$extension}
-inbound_auth/password = {$secret}
-";
+        Log::info("[Asterisk] Adding extension {$extension} (type: {$type})");
 
-        // Write config to local temp file
-        $tempFile = '/tmp/ext_' . $extension . '.conf';
-        file_put_contents($tempFile, $config);
+        // Generate config based on type
+        $config = ($type === 'softphone')
+            ? $this->generateSoftphoneConfig($extension, $secret)
+            : $this->generateWebrtcConfig($extension, $secret);
 
-        // SCP to host 172
-        $scpCmd = "scp -o StrictHostKeyChecking=no {$tempFile} root@{$this->pbxHost}:/tmp/";
-        shell_exec($scpCmd . ' 2>&1');
+        // Step 1: Copy current pjsip.conf from container to host
+        $this->sshExec("docker cp asterisk:/etc/asterisk/pjsip.conf /tmp/pjsip_current.conf");
 
-        // Copy from host into docker container
-        $this->sshExec("docker cp /tmp/ext_{$extension}.conf asterisk:/tmp/");
+        // Step 2: Create extension config on remote host
+        $escapedConfig = str_replace("'", "'\\''", $config);
+        $this->sshExec("echo '{$escapedConfig}' >> /tmp/pjsip_current.conf");
 
-        // Append to pjsip_wizard.conf inside container
-        $this->executeCommand("sh -c 'cat /tmp/ext_{$extension}.conf >> /etc/asterisk/pjsip_wizard.conf'");
+        // Step 3: Copy back to container
+        $this->sshExec("docker cp /tmp/pjsip_current.conf asterisk:/etc/asterisk/pjsip.conf");
 
-        // Cleanup
-        @unlink($tempFile);
-        $this->sshExec("rm /tmp/ext_{$extension}.conf");
-        $this->executeCommand("rm /tmp/ext_{$extension}.conf");
+        // Step 4: Cleanup
+        $this->sshExec("rm /tmp/pjsip_current.conf");
 
+        // Step 5: Reload PJSIP
         return $this->reloadPjsip();
     }
 
     /**
-     * Remove extension from pjsip_wizard.conf
+     * Generate WebRTC config (for browsers)
+     */
+    private function generateWebrtcConfig(string $extension, string $secret): string
+    {
+        return "
+[{$extension}]
+type=endpoint
+context=internal
+disallow=all
+allow=opus,g722,ulaw,alaw
+auth={$extension}
+aors={$extension}
+webrtc=yes
+dtls_auto_generate_cert=yes
+rtp_symmetric=yes
+force_rport=yes
+rewrite_contact=yes
+direct_media=no
+media_encryption_optimistic=yes
+
+[{$extension}]
+type=auth
+auth_type=userpass
+username={$extension}
+password={$secret}
+
+[{$extension}]
+type=aor
+max_contacts=5
+remove_existing=yes
+";
+    }
+
+    /**
+     * Generate Softphone config (for Zoiper/Phoner)
+     */
+    private function generateSoftphoneConfig(string $extension, string $secret): string
+    {
+        return "
+[{$extension}]
+type=endpoint
+context=internal
+disallow=all
+allow=opus,g722,ulaw,alaw
+auth={$extension}
+aors={$extension}
+webrtc=no
+rtp_symmetric=yes
+force_rport=yes
+rewrite_contact=yes
+direct_media=no
+media_encryption=no
+media_encryption_optimistic=no
+ice_support=no
+dtls_auto_generate_cert=no
+
+[{$extension}]
+type=auth
+auth_type=userpass
+username={$extension}
+password={$secret}
+
+[{$extension}]
+type=aor
+max_contacts=5
+remove_existing=yes
+";
+    }
+
+    /**
+     * Remove extension from pjsip.conf
      */
     public function removeExtension(string $extension): bool
     {
-        // Use sed to remove extension block (from [ext] to next empty line)
-        $this->sshExec("docker exec asterisk sed -i '/^\\[{$extension}\\]/,/^\$/d' /etc/asterisk/pjsip_wizard.conf");
+        Log::info("[Asterisk] Removing extension {$extension}");
+
+        // Copy out, remove blocks, copy back
+        $this->sshExec("docker cp asterisk:/etc/asterisk/pjsip.conf /tmp/pjsip_current.conf");
+
+        // Remove all 3 blocks (endpoint, auth, aor) for this extension
+        $sedCmd = "sed -i '/^\\[{$extension}\\]/,/^$/d' /tmp/pjsip_current.conf";
+        $this->sshExec($sedCmd);
+
+        $this->sshExec("docker cp /tmp/pjsip_current.conf asterisk:/etc/asterisk/pjsip.conf");
+        $this->sshExec("rm /tmp/pjsip_current.conf");
 
         return $this->reloadPjsip();
     }

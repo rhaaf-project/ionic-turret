@@ -1,0 +1,39 @@
+<?php
+// Web Device Resource - Device Group
+namespace App\Filament\Resources;
+
+use Filament\Forms;
+use Filament\Forms\Form;
+use Filament\Resources\Resource;
+use Filament\Tables;
+use Filament\Tables\Table;
+
+class WebDeviceResource extends Resource
+{
+    protected static ?string $model = \App\Models\User::class;
+    protected static ?string $navigationIcon = 'heroicon-o-globe-alt';
+    protected static ?string $navigationGroup = 'Device';
+    protected static ?string $navigationLabel = 'Web Device';
+    protected static ?int $navigationSort = 3;
+
+    public static function form(Form $form): Form
+    {
+        return $form->schema([
+            Forms\Components\Placeholder::make('coming_soon')->content('Web Device management coming soon')
+        ]);
+    }
+
+    public static function table(Table $table): Table
+    {
+        return $table->columns([
+            Tables\Columns\TextColumn::make('id')->label('Coming Soon'),
+        ])->paginated(false);
+    }
+
+    public static function getPages(): array
+    {
+        return [
+            'index' => \App\Filament\Resources\WebDeviceResource\Pages\ListWebDevices::route('/'),
+        ];
+    }
+}

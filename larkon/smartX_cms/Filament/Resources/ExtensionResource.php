@@ -19,7 +19,7 @@ class ExtensionResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-phone';
 
-    protected static ?string $navigationGroup = 'System';
+    protected static ?string $navigationGroup = 'Connectivity';
 
     /**
      * Get registration status from Asterisk (cached for 10 seconds)
@@ -59,12 +59,6 @@ class ExtensionResource extends Resource
                             ->unique(ignoreRecord: true)
                             ->maxLength(10)
                             ->placeholder('e.g. 6000'),
-                        Forms\Components\Select::make('type')
-                            ->label('Extension Type')
-                            ->options(Extension::getTypes())
-                            ->default('webrtc')
-                            ->required()
-                            ->helperText('WebRTC for browsers, Softphone for Zoiper/Phoner'),
                         Forms\Components\TextInput::make('name')
                             ->required()
                             ->maxLength(255)
@@ -79,13 +73,22 @@ class ExtensionResource extends Resource
                         Forms\Components\TextInput::make('context')
                             ->required()
                             ->maxLength(255)
-                            ->default('internal'),
+                            ->default('from-internal'),
                         Forms\Components\Toggle::make('is_active')
                             ->default(true)
                             ->inline(false),
                     ])->columns(2),
 
-
+                Forms\Components\Section::make('Assignment')
+                    ->schema([
+                        Forms\Components\Select::make('user_id')
+                            ->label('Assigned User')
+                            ->relationship('user', 'name')
+                            ->searchable()
+                            ->preload()
+                            ->placeholder('Select user (optional)')
+                            ->helperText('User who will login with this extension'),
+                    ]),
             ]);
     }
 
@@ -99,19 +102,6 @@ class ExtensionResource extends Resource
                     ->searchable()
                     ->sortable()
                     ->copyable(),
-                Tables\Columns\TextColumn::make('type')
-                    ->label('Type')
-                    ->badge()
-                    ->color(fn(string $state): string => match ($state) {
-                        'webrtc' => 'info',
-                        'softphone' => 'warning',
-                        default => 'gray',
-                    })
-                    ->formatStateUsing(fn(string $state): string => match ($state) {
-                        'webrtc' => 'WebRTC',
-                        'softphone' => 'Softphone',
-                        default => $state,
-                    }),
                 Tables\Columns\TextColumn::make('name')
                     ->searchable(),
                 Tables\Columns\IconColumn::make('is_active')
@@ -142,9 +132,6 @@ class ExtensionResource extends Resource
             ->filters([
                 Tables\Filters\TernaryFilter::make('is_active')
                     ->label('Active status'),
-                Tables\Filters\SelectFilter::make('type')
-                    ->label('Extension Type')
-                    ->options(Extension::getTypes()),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),

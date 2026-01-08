@@ -11,8 +11,13 @@ class Extension extends Model
 {
     use HasFactory;
 
+    // Extension types
+    const TYPE_WEBRTC = 'webrtc';
+    const TYPE_SOFTPHONE = 'softphone';
+
     protected $fillable = [
         'extension',
+        'type',
         'name',
         'secret',
         'context',
@@ -23,6 +28,17 @@ class Extension extends Model
     protected $casts = [
         'is_active' => 'boolean',
     ];
+
+    /**
+     * Get available extension types
+     */
+    public static function getTypes(): array
+    {
+        return [
+            self::TYPE_WEBRTC => 'WebRTC (Browser/Turret)',
+            self::TYPE_SOFTPHONE => 'Softphone (Zoiper/Phoner)',
+        ];
+    }
 
     /**
      * Boot the model and add Asterisk sync events
@@ -36,8 +52,8 @@ class Extension extends Model
             if ($ext->is_active) {
                 try {
                     $asterisk = app(AsteriskService::class);
-                    $asterisk->addExtension($ext->extension, $ext->secret, $ext->name);
-                    Log::info("[Extension] Synced to Asterisk: {$ext->extension}");
+                    $asterisk->addExtension($ext->extension, $ext->secret, $ext->name, $ext->type);
+                    Log::info("[Extension] Synced to Asterisk: {$ext->extension} (type: {$ext->type})");
                 } catch (\Exception $e) {
                     Log::warning("[Extension] Failed to sync to Asterisk: " . $e->getMessage());
                 }
@@ -54,12 +70,12 @@ class Extension extends Model
                     $asterisk->removeExtension($ext->extension);
                     Log::info("[Extension] Removed from Asterisk (deactivated): {$ext->extension}");
                 }
-                // If extension or secret changed, resync
-                elseif ($ext->wasChanged(['extension', 'secret'])) {
+                // If extension, secret, or type changed, resync
+                elseif ($ext->wasChanged(['extension', 'secret', 'type'])) {
                     $original = $ext->getOriginal('extension');
                     $asterisk->removeExtension($original);
-                    $asterisk->addExtension($ext->extension, $ext->secret, $ext->name);
-                    Log::info("[Extension] Resynced to Asterisk: {$ext->extension}");
+                    $asterisk->addExtension($ext->extension, $ext->secret, $ext->name, $ext->type);
+                    Log::info("[Extension] Resynced to Asterisk: {$ext->extension} (type: {$ext->type})");
                 }
             } catch (\Exception $e) {
                 Log::warning("[Extension] Failed to resync to Asterisk: " . $e->getMessage());
