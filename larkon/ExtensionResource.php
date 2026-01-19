@@ -4,7 +4,6 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\ExtensionResource\Pages;
 use App\Models\Extension;
-use App\Models\User;
 use App\Services\AsteriskService;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -19,7 +18,11 @@ class ExtensionResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-phone';
 
-    protected static ?string $navigationGroup = 'System';
+    protected static ?string $navigationGroup = 'Connectivity';
+
+    protected static ?string $navigationParentItem = 'Line';
+
+    protected static ?int $navigationSort = 2;
 
     /**
      * Get registration status from Asterisk (cached for 10 seconds)
@@ -32,7 +35,6 @@ class ExtensionResource extends Resource
                 $output = $asterisk->getEndpoints();
 
                 $status = [];
-                // Parse output: "Endpoint:  6011    Not in use" or "Endpoint:  6010    Unavailable"
                 preg_match_all('/Endpoint:\s+(\d+)\s+(\w+(?:\s+\w+)?)/m', $output, $matches, PREG_SET_ORDER);
 
                 foreach ($matches as $match) {
@@ -85,7 +87,6 @@ class ExtensionResource extends Resource
                             ->inline(false),
                     ])->columns(2),
 
-
             ]);
     }
 
@@ -129,16 +130,12 @@ class ExtensionResource extends Resource
                     }),
                 Tables\Columns\TextColumn::make('context')
                     ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('user.name')
-                    ->label('Assigned User')
-                    ->placeholder('Unassigned')
-                    ->searchable(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
-            ->poll('10s') // Auto-refresh every 10 seconds
+            ->poll('10s')
             ->filters([
                 Tables\Filters\TernaryFilter::make('is_active')
                     ->label('Active status'),

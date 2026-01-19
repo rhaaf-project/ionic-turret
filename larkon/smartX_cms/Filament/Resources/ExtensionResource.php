@@ -4,7 +4,6 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\ExtensionResource\Pages;
 use App\Models\Extension;
-use App\Models\User;
 use App\Services\AsteriskService;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -21,6 +20,10 @@ class ExtensionResource extends Resource
 
     protected static ?string $navigationGroup = 'Connectivity';
 
+    protected static ?string $navigationParentItem = 'Line';
+
+    protected static ?int $navigationSort = 2;
+
     /**
      * Get registration status from Asterisk (cached for 10 seconds)
      */
@@ -32,7 +35,6 @@ class ExtensionResource extends Resource
                 $output = $asterisk->getEndpoints();
 
                 $status = [];
-                // Parse output: "Endpoint:  6011    Not in use" or "Endpoint:  6010    Unavailable"
                 preg_match_all('/Endpoint:\s+(\d+)\s+(\w+(?:\s+\w+)?)/m', $output, $matches, PREG_SET_ORDER);
 
                 foreach ($matches as $match) {
@@ -54,11 +56,35 @@ class ExtensionResource extends Resource
             ->schema([
                 Forms\Components\Section::make('Extension Details')
                     ->schema([
+                        Forms\Components\Select::make('call_server_id')
+                            ->label('Call Server')
+                            ->relationship('callServer', 'name')
+                            ->required()
+                            ->searchable()
+                            ->preload()
+                            ->createOptionForm([
+                                Forms\Components\TextInput::make('name')
+                                    ->required()
+                                    ->maxLength(100),
+                                Forms\Components\TextInput::make('host')
+                                    ->required()
+                                    ->maxLength(255),
+                                Forms\Components\TextInput::make('port')
+                                    ->numeric()
+                                    ->default(5060),
+                            ])
+                            ->helperText('Select which PBX this extension is registered to'),
                         Forms\Components\TextInput::make('extension')
                             ->required()
                             ->unique(ignoreRecord: true)
                             ->maxLength(10)
                             ->placeholder('e.g. 6000'),
+                        Forms\Components\Select::make('type')
+                            ->label('Extension Type')
+                            ->options(Extension::getTypes())
+                            ->default('webrtc')
+                            ->required()
+                            ->helperText('WebRTC for browsers, Softphone for Zoiper/Phoner'),
                         Forms\Components\TextInput::make('name')
                             ->required()
                             ->maxLength(255)
@@ -73,22 +99,12 @@ class ExtensionResource extends Resource
                         Forms\Components\TextInput::make('context')
                             ->required()
                             ->maxLength(255)
-                            ->default('from-internal'),
+                            ->default('internal'),
                         Forms\Components\Toggle::make('is_active')
                             ->default(true)
                             ->inline(false),
                     ])->columns(2),
 
-                Forms\Components\Section::make('Assignment')
-                    ->schema([
-                        Forms\Components\Select::make('user_id')
-                            ->label('Assigned User')
-                            ->relationship('user', 'name')
-                            ->searchable()
-                            ->preload()
-                            ->placeholder('Select user (optional)')
-                            ->helperText('User who will login with this extension'),
-                    ]),
             ]);
     }
 
@@ -98,10 +114,27 @@ class ExtensionResource extends Resource
 
         return $table
             ->columns([
+                Tables\Columns\TextColumn::make('callServer.name')
+                    ->label('Call Server')
+                    ->searchable()
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('extension')
                     ->searchable()
                     ->sortable()
                     ->copyable(),
+                Tables\Columns\TextColumn::make('type')
+                    ->label('Type')
+                    ->badge()
+                    ->color(fn(string $state): string => match ($state) {
+                        'webrtc' => 'info',
+                        'softphone' => 'warning',
+                        default => 'gray',
+                    })
+                    ->formatStateUsing(fn(string $state): string => match ($state) {
+                        'webrtc' => 'WebRTC',
+                        'softphone' => 'Softphone',
+                        default => $state,
+                    }),
                 Tables\Columns\TextColumn::make('name')
                     ->searchable(),
                 Tables\Columns\IconColumn::make('is_active')
@@ -119,19 +152,21 @@ class ExtensionResource extends Resource
                     }),
                 Tables\Columns\TextColumn::make('context')
                     ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('user.name')
-                    ->label('Assigned User')
-                    ->placeholder('Unassigned')
-                    ->searchable(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
-            ->poll('10s') // Auto-refresh every 10 seconds
+            ->poll('10s')
             ->filters([
+                Tables\Filters\SelectFilter::make('call_server_id')
+                    ->label('Call Server')
+                    ->relationship('callServer', 'name'),
                 Tables\Filters\TernaryFilter::make('is_active')
                     ->label('Active status'),
+                Tables\Filters\SelectFilter::make('type')
+                    ->label('Extension Type')
+                    ->options(Extension::getTypes()),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),

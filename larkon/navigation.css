@@ -1,0 +1,26 @@
+/* Custom navigation styles for SmartX UCX CMS */
+
+/* Add chevron indicator for navigation items with children */
+.fi-sidebar-nav .fi-sidebar-item-button:has(+ .fi-sidebar-item-children)::after {
+    content: '▼';
+    margin-left: auto;
+    font-size: 0.75rem;
+    opacity: 0.5;
+    transition: transform 0.2s ease;
+}
+
+/* Rotate chevron when expanded */
+.fi-sidebar-nav .fi-sidebar-item.fi-sidebar-item-expanded>.fi-sidebar-item-button::after {
+    transform: rotate(180deg);
+}
+
+/* Style for parent items that have children - add subtle indicator */
+.fi-sidebar-group-items .fi-sidebar-item:has(.fi-sidebar-item-children)>.fi-sidebar-item-button {
+    font-weight: 600;
+}
+
+/* Add small dot indicator for items with children */
+.fi-sidebar-item:has(.fi-sidebar-item-children)>.fi-sidebar-item-button .fi-sidebar-item-label::after {
+    content: ' ▾';
+    opacity: 0.7;
+}
