@@ -1,0 +1,83 @@
+# CI/CD Setup Instructions for Turret
+
+## GitHub Secrets Required
+
+Go to: https://github.com/rhaaf-project/ionic-turret/settings/secrets/actions
+
+Add these secrets:
+
+### 1. SERVER_170_HOST
+```
+103.154.80.170
+```
+
+### 2. SERVER_170_USER
+```
+root
+```
+
+### 3. SERVER_170_SSH_KEY
+Copy the entire private key below (including BEGIN and END lines):
+```
+-----BEGIN OPENSSH PRIVATE KEY-----
+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
+-----END OPENSSH PRIVATE KEY-----
+```
+
+## After Setting Secrets
+
+Once secrets are configured, every push to `main` will:
+1. Build Turret (npm ci && npm run build)
+2. Deploy to /var/www/html/turret on server 170
+3. Reload nginx
+
+## Manual Trigger
+
+You can also manually trigger deployment from:
+https://github.com/rhaaf-project/ionic-turret/actions → "Deploy Turret to Server 170" → "Run workflow"
