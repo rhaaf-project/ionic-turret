@@ -16,7 +16,7 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '18'
+        node-version: '20'
         cache: 'npm'
 
     - name: Install dependencies
@@ -31,9 +31,9 @@ jobs:
         host: ${{ secrets.SERVER_170_HOST }}
         username: ${{ secrets.SERVER_170_USER }}
         key: ${{ secrets.SERVER_170_SSH_KEY }}
-        source: "www/*"
+        source: "www/browser/*"
         target: "/var/www/html/turret"
-        strip_components: 1
+        strip_components: 2
 
     - name: Restart Nginx
       uses: appleboy/ssh-action@v1.0.3
