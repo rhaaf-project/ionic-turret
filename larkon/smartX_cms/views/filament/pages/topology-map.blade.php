@@ -20,7 +20,8 @@
                 </div>
             </div>
             <div id="topology-network"
-                style="width: 100%; height: 600px; border: 1px solid #e5e7eb; border-radius: 8px; background: #f9f9f9;"></div>
+                style="width: 100%; height: 600px; border: 1px solid #e5e7eb; border-radius: 8px; background: #f9f9f9;">
+            </div>
         </div>
 
         {{-- Stats Cards --}}
@@ -50,9 +51,10 @@
             // Count stats
             let hoCount = 0, branchCount = 0, connectionCount = 0;
 
-            // Icon URLs - using icons8 for reliable PNGs
-            const cloudIcon = 'https://img.icons8.com/fluency/96/cloud.png';
-            const serverIcon = 'https://img.icons8.com/fluency/96/server.png';
+            // Icon URLs - local PNG files
+            const headOfficeIcon = '/images/topology/head-office.png';
+            const branchIcon = '/images/topology/branch.png';
+            const branchSbcIcon = '/images/topology/branch-sbc.png';
 
             // Transform nodes for vis.js with proper icons
             const nodes = topologyData.nodes.map(node => {
@@ -63,8 +65,8 @@
                         label: node.label + '\ntype: peer\nIP:',
                         title: node.title,
                         shape: 'image',
-                        image: cloudIcon,
-                        size: 35,
+                        image: headOfficeIcon,
+                        size: 45,
                         font: { color: '#374151', size: 11, face: 'arial', multi: true, align: 'left' }
                     };
                 } else if (node.group === 'standalone') {
@@ -74,20 +76,21 @@
                         label: node.label + '\ntype: standalone\nIP: ' + node.ip,
                         title: node.title,
                         shape: 'image',
-                        image: serverIcon,
-                        size: 30,
+                        image: branchIcon,
+                        size: 40,
                         font: { color: '#374151', size: 10, face: 'arial', multi: true }
                     };
                 } else {
                     branchCount++;
                     const isActive = node.status === 'OK';
+                    const hasSbc = node.has_sbc || false;
                     return {
                         id: node.id,
                         label: node.label + '\ntype: peer\nIP: ' + node.ip + '\n' + (isActive ? 'OK' : 'Offline'),
                         title: node.title,
                         shape: 'image',
-                        image: serverIcon,
-                        size: 30,
+                        image: hasSbc ? branchSbcIcon : branchIcon,
+                        size: 40,
                         font: { color: isActive ? '#16a34a' : '#dc2626', size: 10, face: 'arial', multi: true }
                     };
                 }
