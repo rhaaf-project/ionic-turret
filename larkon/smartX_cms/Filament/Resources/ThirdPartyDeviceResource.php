@@ -16,6 +16,11 @@ class ThirdPartyDeviceResource extends Resource
     protected static ?string $navigationLabel = '3rd Party';
     protected static ?int $navigationSort = 2;
 
+    public static function shouldRegisterNavigation(): bool
+    {
+        return false; // Hidden - using WebDeviceResource as '3rd Party' instead
+    }
+
     public static function form(Form $form): Form
     {
         return $form->schema([

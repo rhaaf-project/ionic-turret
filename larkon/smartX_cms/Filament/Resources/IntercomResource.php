@@ -20,9 +20,6 @@ class IntercomResource extends Resource
 
     protected static ?string $navigationGroup = 'Connectivity';
 
-    // NOTE: navigationParentItem = 'Line' causes menu to disappear, leaving as standalone for now
-    // protected static ?string $navigationParentItem = 'Line';
-
     protected static ?string $navigationLabel = 'Intercom';
 
     protected static ?int $navigationSort = 5;

@@ -20,7 +20,7 @@ class VpwResource extends Resource
 
     protected static ?string $navigationGroup = 'Connectivity';
 
-    protected static ?string $navigationParentItem = 'Line';
+    protected static ?string $navigationParentItem = 'Line ▾';
 
     protected static ?string $navigationLabel = 'VPW';
 

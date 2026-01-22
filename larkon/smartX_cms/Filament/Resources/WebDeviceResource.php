@@ -12,9 +12,10 @@ class WebDeviceResource extends Resource
 {
     protected static ?string $model = \App\Models\User::class;
     protected static ?string $navigationIcon = 'heroicon-o-globe-alt';
-    protected static ?string $navigationGroup = 'Device';
-    protected static ?string $navigationLabel = 'Web Device';
-    protected static ?int $navigationSort = 3;
+    protected static ?string $navigationGroup = 'Connectivity';
+    protected static ?string $navigationParentItem = 'Line ▾';
+    protected static ?string $navigationLabel = '3rd Party';
+    protected static ?int $navigationSort = 5;
 
     public static function form(Form $form): Form
     {

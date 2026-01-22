@@ -13,7 +13,7 @@ class LineResource extends Resource
     protected static ?string $model = \App\Models\User::class;
     protected static ?string $navigationIcon = 'heroicon-o-signal';
     protected static ?string $navigationGroup = 'Connectivity';
-    protected static ?string $navigationLabel = 'Line (Extension/VPW/CAS)';
+    protected static ?string $navigationLabel = 'Line ▾';
     protected static ?int $navigationSort = 2;
 
     public static function form(Form $form): Form
