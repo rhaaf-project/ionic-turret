@@ -18,9 +18,11 @@ class SbcResource extends Resource
 
     protected static ?string $navigationGroup = 'Connectivity';
 
-    protected static ?string $navigationLabel = 'SBC';
+    protected static ?string $navigationParentItem = 'SBC ▾';
 
-    protected static ?int $navigationSort = 10;
+    protected static ?string $navigationLabel = 'Connections';
+
+    protected static ?int $navigationSort = 1;
 
     public static function form(Form $form): Form
     {
