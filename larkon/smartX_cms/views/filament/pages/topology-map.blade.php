@@ -1,24 +1,7 @@
 <x-filament-panels::page>
     <div class="space-y-6">
-        {{-- Topology Container --}}
+        {{-- Topology Container - No header, just the diagram --}}
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
-            <div class="flex items-center justify-between mb-4">
-                <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Network Topology Map</h2>
-                <div class="flex gap-4 text-sm">
-                    <span class="flex items-center gap-2">
-                        <span class="w-4 h-4 rounded-full bg-blue-500"></span>
-                        <span class="text-gray-600 dark:text-gray-400">Head Office</span>
-                    </span>
-                    <span class="flex items-center gap-2">
-                        <span class="w-4 h-4 rounded-full bg-green-500"></span>
-                        <span class="text-gray-600 dark:text-gray-400">Branch (Active)</span>
-                    </span>
-                    <span class="flex items-center gap-2">
-                        <span class="w-4 h-4 rounded-full bg-red-500"></span>
-                        <span class="text-gray-600 dark:text-gray-400">Branch (Offline)</span>
-                    </span>
-                </div>
-            </div>
             <div id="topology-network"
                 style="width: 100%; height: 600px; border: 1px solid #e5e7eb; border-radius: 8px; background: #f9f9f9;">
             </div>
@@ -134,7 +117,7 @@
                         centralGravity: 0.0,
                         springLength: 200,
                         springConstant: 0.01,
-                        nodeDistance: 150
+                        nodeDistance: 80
                     },
                     solver: 'hierarchicalRepulsion'
                 },
@@ -143,8 +126,8 @@
                         enabled: true,
                         direction: 'LR',
                         sortMethod: 'directed',
-                        levelSeparation: 250,
-                        nodeSpacing: 100
+                        levelSeparation: 200,
+                        nodeSpacing: 50
                     }
                 },
                 interaction: {

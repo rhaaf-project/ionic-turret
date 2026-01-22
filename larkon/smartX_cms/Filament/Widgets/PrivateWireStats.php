@@ -13,13 +13,24 @@ class PrivateWireStats extends Widget
 
     public function getPrivateWires(): array
     {
-        return PrivateWire::all()->map(function ($pw) {
-            return [
-                'id' => $pw->id,
-                'label' => $pw->name,
-                'number' => $pw->number,
-                'is_active' => $pw->is_active,
-            ];
-        })->toArray();
+        // Hide PW-Jakarta widgets from dashboard
+        $hiddenPws = [
+            'PW-Jakarta-Bandung',
+            'PW-Jakarta-Surabaya',
+            'PW-Jakarta-Medan',
+            'PW-Jakarta-Makassar',
+            'PW-Jakarta-Semarang',
+        ];
+
+        return PrivateWire::all()
+            ->filter(fn($pw) => !in_array($pw->name, $hiddenPws))
+            ->map(function ($pw) {
+                return [
+                    'id' => $pw->id,
+                    'label' => $pw->name,
+                    'number' => $pw->number,
+                    'is_active' => $pw->is_active,
+                ];
+            })->values()->toArray();
     }
 }

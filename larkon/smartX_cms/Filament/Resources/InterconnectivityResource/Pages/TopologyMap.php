@@ -11,7 +11,7 @@ class TopologyMap extends Page
 
     protected static string $view = 'filament.pages.topology-map';
 
-    protected static ?string $title = 'Network Topology';
+    protected static ?string $title = 'Connectivity Diagram';
 
     protected static ?string $navigationIcon = 'heroicon-o-globe-alt';
 

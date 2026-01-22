@@ -97,6 +97,11 @@ class StatsOverview extends Widget
                 'active' => OutboundRoute::count(),
                 'inactive' => 0,
             ],
+            [
+                'label' => '3rd Party',
+                'active' => 0, // Placeholder - no model yet
+                'inactive' => 0,
+            ],
         ];
     }
 }
