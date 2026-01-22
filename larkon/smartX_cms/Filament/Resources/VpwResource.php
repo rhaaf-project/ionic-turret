@@ -32,37 +32,24 @@ class VpwResource extends Resource
             ->schema([
                 Forms\Components\Section::make('VPW Details')
                     ->schema([
-                        // Row 1: Call Server, Name
                         Forms\Components\Select::make('call_server_id')
                             ->label('Call Server')
                             ->relationship('callServer', 'name')
                             ->required()
                             ->searchable()
                             ->preload(),
-                        Forms\Components\TextInput::make('name')
-                            ->required()
-                            ->maxLength(100)
-                            ->placeholder('e.g. VPW HarInd-BSD'),
-                        // Row 2: VPW Number, Trunk
                         Forms\Components\TextInput::make('vpw_number')
-                            ->label('VPW Number')
-                            ->maxLength(50)
-                            ->placeholder('e.g. 9001'),
-                        Forms\Components\Select::make('trunk_id')
-                            ->label('Trunk')
-                            ->relationship('trunk', 'name')
-                            ->searchable()
-                            ->preload()
-                            ->placeholder('Select trunk (optional)'),
-                        // Row 3: Destination, Description
+                            ->label('VPW')
+                            ->required()
+                            ->maxLength(50),
+                        Forms\Components\Toggle::make('destination_local')
+                            ->label('Destination Local')
+                            ->default(false)
+                            ->inline(false),
                         Forms\Components\TextInput::make('destination')
                             ->label('Destination')
                             ->maxLength(100)
-                            ->placeholder('e.g. 021-5550123')
-                            ->helperText('Phone number destination'),
-                        Forms\Components\Textarea::make('description')
-                            ->maxLength(500)
-                            ->rows(2),
+                            ->helperText('Nomor tujuan'),
                     ])->columns(2),
             ]);
     }
@@ -75,15 +62,12 @@ class VpwResource extends Resource
                     ->label('Call Server')
                     ->searchable()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('name')
-                    ->searchable()
-                    ->sortable(),
                 Tables\Columns\TextColumn::make('vpw_number')
-                    ->label('VPW #')
+                    ->label('VPW')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('trunk.name')
-                    ->label('Trunk')
-                    ->placeholder('-'),
+                Tables\Columns\IconColumn::make('destination_local')
+                    ->boolean()
+                    ->label('Local'),
                 Tables\Columns\TextColumn::make('destination')
                     ->limit(30),
             ])

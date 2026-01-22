@@ -30,8 +30,7 @@ class CasResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('CAS Channel Details')
-                    ->description('CAS channels are auto-dial lines')
+                Forms\Components\Section::make('CAS Details')
                     ->schema([
                         Forms\Components\Select::make('call_server_id')
                             ->label('Call Server')
@@ -39,23 +38,18 @@ class CasResource extends Resource
                             ->required()
                             ->searchable()
                             ->preload(),
-                        Forms\Components\TextInput::make('name')
+                        Forms\Components\TextInput::make('cas_number')
+                            ->label('CAS')
                             ->required()
+                            ->maxLength(50),
+                        Forms\Components\Toggle::make('destination_local')
+                            ->label('Destination Local')
+                            ->default(false)
+                            ->inline(false),
+                        Forms\Components\TextInput::make('destination')
+                            ->label('Destination')
                             ->maxLength(100)
-                            ->placeholder('e.g. CAS Channel 01'),
-                        Forms\Components\TextInput::make('channel_number')
-                            ->label('Number')
-                            ->numeric()
-                            ->placeholder('e.g. 1'),
-                        Forms\Components\Select::make('trunk_id')
-                            ->label('Trunk')
-                            ->relationship('trunk', 'name')
-                            ->searchable()
-                            ->preload()
-                            ->placeholder('Select trunk (optional)'),
-                        Forms\Components\Textarea::make('description')
-                            ->maxLength(500)
-                            ->columnSpanFull(),
+                            ->helperText('Nomor tujuan'),
                     ])->columns(2),
             ]);
     }
@@ -68,16 +62,14 @@ class CasResource extends Resource
                     ->label('Call Server')
                     ->searchable()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('name')
-                    ->searchable()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('channel_number')
-                    ->label('Number'),
-                Tables\Columns\TextColumn::make('trunk.name')
-                    ->label('Trunk')
-                    ->placeholder('-'),
-                Tables\Columns\TextColumn::make('description')
-                    ->limit(50),
+                Tables\Columns\TextColumn::make('cas_number')
+                    ->label('CAS')
+                    ->searchable(),
+                Tables\Columns\IconColumn::make('destination_local')
+                    ->boolean()
+                    ->label('Local'),
+                Tables\Columns\TextColumn::make('destination')
+                    ->limit(30),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('call_server_id')

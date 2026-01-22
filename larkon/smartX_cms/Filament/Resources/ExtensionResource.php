@@ -61,57 +61,29 @@ class ExtensionResource extends Resource
                             ->relationship('callServer', 'name')
                             ->required()
                             ->searchable()
-                            ->preload()
-                            ->createOptionForm([
-                                Forms\Components\TextInput::make('name')
-                                    ->required()
-                                    ->maxLength(100),
-                                Forms\Components\TextInput::make('host')
-                                    ->required()
-                                    ->maxLength(255),
-                                Forms\Components\TextInput::make('port')
-                                    ->numeric()
-                                    ->default(5060),
-                            ])
-                            ->helperText('Select which PBX this extension is registered to'),
+                            ->preload(),
                         Forms\Components\TextInput::make('extension')
                             ->required()
                             ->unique(ignoreRecord: true)
-                            ->maxLength(10)
-                            ->placeholder('e.g. 6000'),
-                        Forms\Components\Select::make('type')
-                            ->label('Extension Type')
-                            ->options(Extension::getTypes())
-                            ->default('webrtc')
-                            ->required()
-                            ->helperText('WebRTC for browsers, Softphone for Zoiper/Phoner'),
+                            ->maxLength(10),
                         Forms\Components\TextInput::make('name')
                             ->required()
-                            ->maxLength(255)
-                            ->placeholder('Extension display name'),
+                            ->maxLength(255),
                         Forms\Components\TextInput::make('secret')
+                            ->label('Secret')
+                            ->default(fn() => bin2hex(random_bytes(8)))
                             ->required()
-                            ->password()
-                            ->revealable()
-                            ->maxLength(255)
-                            ->default('Maja1234')
-                            ->placeholder('SIP password'),
-                        Forms\Components\TextInput::make('context')
-                            ->required()
-                            ->maxLength(255)
-                            ->default('internal'),
-                        Forms\Components\Toggle::make('is_active')
-                            ->default(true)
-                            ->inline(false),
+                            ->maxLength(32)
+                            ->helperText('Auto-generated. You can customize if needed.'),
+                        Forms\Components\Textarea::make('description')
+                            ->maxLength(500)
+                            ->columnSpanFull(),
                     ])->columns(2),
-
             ]);
     }
 
     public static function table(Table $table): Table
     {
-        $status = static::getRegistrationStatus();
-
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('callServer.name')
@@ -122,51 +94,16 @@ class ExtensionResource extends Resource
                     ->searchable()
                     ->sortable()
                     ->copyable(),
-                Tables\Columns\TextColumn::make('type')
-                    ->label('Type')
-                    ->badge()
-                    ->color(fn(string $state): string => match ($state) {
-                        'webrtc' => 'info',
-                        'softphone' => 'warning',
-                        default => 'gray',
-                    })
-                    ->formatStateUsing(fn(string $state): string => match ($state) {
-                        'webrtc' => 'WebRTC',
-                        'softphone' => 'Softphone',
-                        default => $state,
-                    }),
                 Tables\Columns\TextColumn::make('name')
                     ->searchable(),
-                Tables\Columns\IconColumn::make('is_active')
-                    ->boolean()
-                    ->label('Active'),
-                Tables\Columns\TextColumn::make('registration_status')
-                    ->label('SIP Status')
-                    ->badge()
-                    ->getStateUsing(fn($record) => $status[$record->extension] ?? 'Unknown')
-                    ->color(fn(string $state): string => match (true) {
-                        str_contains($state, 'Not in use') => 'success',
-                        str_contains($state, 'In use') => 'warning',
-                        str_contains($state, 'Unavailable') => 'gray',
-                        default => 'gray',
-                    }),
-                Tables\Columns\TextColumn::make('context')
-                    ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('secret')
+                    ->label('Secret')
+                    ->copyable(),
             ])
-            ->poll('10s')
             ->filters([
                 Tables\Filters\SelectFilter::make('call_server_id')
                     ->label('Call Server')
                     ->relationship('callServer', 'name'),
-                Tables\Filters\TernaryFilter::make('is_active')
-                    ->label('Active status'),
-                Tables\Filters\SelectFilter::make('type')
-                    ->label('Extension Type')
-                    ->options(Extension::getTypes()),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
