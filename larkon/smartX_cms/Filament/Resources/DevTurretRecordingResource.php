@@ -16,6 +16,12 @@ class DevTurretRecordingResource extends Resource
     protected static ?string $navigationLabel = 'Dev Turret';
     protected static ?int $navigationSort = 2;
 
+    // Hide from navigation
+    public static function shouldRegisterNavigation(): bool
+    {
+        return false;
+    }
+
     public static function form(Form $form): Form
     {
         return $form->schema([
