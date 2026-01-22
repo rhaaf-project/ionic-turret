@@ -1,0 +1,43 @@
+Drop Down menu
+-None-
+Aastra
+Aastra Matra
+Alcatel
+Asterisk
+Avaya
+Avaya DMCC
+Cisco
+Cisco BIB
+Cisco SIP
+Cisco SIP Fork
+Cisco Skinny
+E-Metrotel
+Genesys
+Genesys Active Recording
+Huawei
+Huawei Meeting Recording
+LG
+Mitel
+Mitel SRC
+Nortel
+Nortel MGCP
+Panasonic
+Radio - Motorola
+Radio - Tait
+Radio - Zenitel
+RTP
+Shorotel
+Siemen
+Siemen H323
+Siemen OpenScape
+SIP
+SIP TCP
+SIP UDP
+Speakerbus
+Smart UCX Phone
+Smart UCX Softphone
+Smart UCX Turret
+Taladiran
+Taladiran Active Recording
+Taladiran MGCP
+CUSTOM
