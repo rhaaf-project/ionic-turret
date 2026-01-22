@@ -1,33 +1,33 @@
 <?php
-// Fix navigation for Extension and ThirdPartyDevice resources
+// Fix navigation - use navigationGroup instead of navigationParentItem
 
 $basePath = '/var/www/html/smartX/app/Filament/Resources';
 
-// 1. Fix ExtensionResource - use correct parent
+// 1. Fix ExtensionResource
 $extFile = "$basePath/ExtensionResource.php";
 $content = file_get_contents($extFile);
 
-// Change from navigationParentItem to proper Line parent matching LineResource
+// Remove navigationParentItem and add navigationGroup
 $content = str_replace(
-    "protected static ?string \$navigationParentItem = 'Line';",
     "protected static ?string \$navigationParentItem = 'Line ▾';",
+    "protected static ?string \$navigationGroup = 'Connectivity';",
     $content
 );
 
 file_put_contents($extFile, $content);
-echo "Fixed ExtensionResource navigation\n";
+echo "Fixed ExtensionResource\n";
 
-// 2. Fix ThirdPartyDeviceResource - use correct parent
+// 2. Fix ThirdPartyDeviceResource  
 $thirdFile = "$basePath/ThirdPartyDeviceResource.php";
 $content = file_get_contents($thirdFile);
 
 $content = str_replace(
-    "protected static ?string \$navigationParentItem = 'Line';",
     "protected static ?string \$navigationParentItem = 'Line ▾';",
+    "protected static ?string \$navigationGroup = 'Connectivity';",
     $content
 );
 
 file_put_contents($thirdFile, $content);
-echo "Fixed ThirdPartyDeviceResource navigation\n";
+echo "Fixed ThirdPartyDeviceResource\n";
 
 echo "\nDone!\n";
