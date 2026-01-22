@@ -78,6 +78,8 @@ class ExtensionResource extends Resource
                         Forms\Components\Textarea::make('description')
                             ->maxLength(500)
                             ->columnSpanFull(),
+                        Forms\Components\Hidden::make('type')
+                            ->default('webrtc'),
                     ])->columns(2),
             ]);
     }
@@ -100,6 +102,7 @@ class ExtensionResource extends Resource
                     ->label('Secret')
                     ->copyable(),
             ])
+            ->modifyQueryUsing(fn($query) => $query->where('type', 'webrtc'))
             ->filters([
                 Tables\Filters\SelectFilter::make('call_server_id')
                     ->label('Call Server')
