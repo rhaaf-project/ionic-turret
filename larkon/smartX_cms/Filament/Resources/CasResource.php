@@ -45,11 +45,11 @@ class CasResource extends Resource
                         Forms\Components\Toggle::make('destination_local')
                             ->label('Destination Local')
                             ->default(false)
-                            ->inline(false),
+                            ->inline(false)
+                            ->helperText('Untuk Private Wire (Conference)'),
                         Forms\Components\TextInput::make('destination')
-                            ->label('Destination')
-                            ->maxLength(100)
-                            ->helperText('Nomor tujuan'),
+                            ->label('Channel Destination')
+                            ->maxLength(100),
                     ])->columns(2),
             ]);
     }
@@ -69,6 +69,7 @@ class CasResource extends Resource
                     ->boolean()
                     ->label('Local'),
                 Tables\Columns\TextColumn::make('destination')
+                    ->label('Channel Destination')
                     ->limit(30),
             ])
             ->filters([

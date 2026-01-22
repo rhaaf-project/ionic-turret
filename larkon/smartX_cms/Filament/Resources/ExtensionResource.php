@@ -65,16 +65,20 @@ class ExtensionResource extends Resource
                         Forms\Components\TextInput::make('extension')
                             ->required()
                             ->unique(ignoreRecord: true)
-                            ->maxLength(10),
+                            ->maxLength(7)
+                            ->rules(['max:7'])
+                            ->validationMessages([
+                                'max' => 'Extension must be at most 7 digits',
+                            ]),
                         Forms\Components\TextInput::make('name')
                             ->required()
                             ->maxLength(255),
                         Forms\Components\TextInput::make('secret')
                             ->label('Secret')
-                            ->default(fn() => bin2hex(random_bytes(8)))
                             ->required()
-                            ->maxLength(32)
-                            ->helperText('Auto-generated. You can customize if needed.'),
+                            ->password()
+                            ->revealable()
+                            ->maxLength(32),
                         Forms\Components\Textarea::make('description')
                             ->maxLength(500)
                             ->columnSpanFull(),

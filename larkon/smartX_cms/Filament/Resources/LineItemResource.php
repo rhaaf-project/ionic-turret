@@ -53,10 +53,10 @@ class LineItemResource extends Resource
                             ->maxLength(100),
                         Forms\Components\TextInput::make('secret')
                             ->label('Secret')
-                            ->default(fn() => bin2hex(random_bytes(8)))
                             ->required()
-                            ->maxLength(32)
-                            ->helperText('Auto-generated. You can customize if needed.'),
+                            ->password()
+                            ->revealable()
+                            ->maxLength(32),
                         Forms\Components\Textarea::make('description')
                             ->maxLength(500)
                             ->columnSpanFull(),
