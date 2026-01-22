@@ -17,6 +17,8 @@ class WebDeviceResource extends Resource
     protected static ?string $navigationGroup = 'Connectivity';
     protected static ?string $navigationParentItem = 'Line ▾';
     protected static ?string $navigationLabel = 'SIP/3rdParty';
+    protected static ?string $modelLabel = 'SIP/3rdParty';
+    protected static ?string $pluralModelLabel = 'SIP/3rdParty';
     protected static ?int $navigationSort = 5;
 
     public static function form(Form $form): Form
