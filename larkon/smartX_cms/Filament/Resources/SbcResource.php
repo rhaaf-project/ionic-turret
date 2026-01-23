@@ -14,7 +14,7 @@ class SbcResource extends Resource
 {
     protected static ?string $model = Sbc::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-shield-check';
+    protected static ?string $navigationIcon = 'heroicon-o-link';
 
     protected static ?string $navigationGroup = 'Connectivity';
 
