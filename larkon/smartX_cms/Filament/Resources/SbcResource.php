@@ -22,6 +22,10 @@ class SbcResource extends Resource
 
     protected static ?string $navigationLabel = 'Connections';
 
+    protected static ?string $modelLabel = 'SBC Connection';
+
+    protected static ?string $pluralModelLabel = 'SBC Connections';
+
     protected static ?int $navigationSort = 1;
 
     public static function form(Form $form): Form

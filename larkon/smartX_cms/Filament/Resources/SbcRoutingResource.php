@@ -17,6 +17,8 @@ class SbcRoutingResource extends Resource
     protected static ?string $navigationGroup = 'Connectivity';
     protected static ?string $navigationParentItem = 'SBC ▾';
     protected static ?string $navigationLabel = 'Routing';
+    protected static ?string $modelLabel = 'SBC Routing';
+    protected static ?string $pluralModelLabel = 'SBC Routing';
     protected static ?int $navigationSort = 2;
 
     public static function form(Form $form): Form
